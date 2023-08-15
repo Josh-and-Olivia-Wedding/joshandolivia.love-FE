@@ -24,6 +24,7 @@ concurrency:
 jobs:
   # Build job
   build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -38,10 +39,10 @@ jobs:
 
       - name: Build Project
         run: npm run build # or webpack --config webpack.config.js, if that's how you run your build
+      - name: Upload artifact 
         with:
           source: ./dist
-          destination: ./_site
-      - name: Upload artifact
+          destination: ./
         uses: actions/upload-pages-artifact@v2
 
   # Deployment job
