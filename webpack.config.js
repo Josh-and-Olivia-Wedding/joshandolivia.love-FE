@@ -51,19 +51,6 @@ module.exports = {
 					}
 				]
 			},
-			// {
-			// 	test: /\.ttf$/,
-			// 	use: [
-			// 		{
-			// 			loader: 'file-loader',
-			// 			options: {
-			// 				name: '[name].[ext]',
-			// 				outputPath: 'fonts/',
-			// 				mimetype: 'font/ttf',
-			// 			},
-			// 		},
-			// 	],
-			// },
 			{
 				test: /\.(svg|avif|png|jpg)$/,
 				include: path.resolve(__dirname, 'src/assets'),
@@ -96,14 +83,6 @@ module.exports = {
 			},
 			favicon: "./src/assets/images/icons/favicon.png"
 		}),
-		// new CleanWebpackPlugin({
-		// 	cleanOnceBeforeBuildPatterns: [path.resolve('.webpack-cache')],
-		// }),
-		// new CopyWebpackPlugin({
-		// 	patterns: [
-		// 		{ from: 'workers', to: 'workers' },
-		// 	],
-		// }),
 	],
 	optimization:{
 		splitChunks: {
