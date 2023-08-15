@@ -32,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14' # or whatever version you're using
+          node-version: '16'
 
       - name: Install Dependencies
         run: npm install
@@ -49,14 +49,14 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://joshandolivia.love
     runs-on: ubuntu-latest
     needs: build
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v2
         with:
-          name: website
+          name: page
           path: ./dist
       - name: Deploy to GitHub Pages
         id: deployment
