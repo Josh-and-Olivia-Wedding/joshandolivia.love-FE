@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 // const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 // const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require("path");
@@ -76,19 +77,25 @@ module.exports = {
 		}
 	},
 	plugins: [
+		new CopyWebpackPlugin({
+            patterns: [
+                { from: 'src/assets/images/main-image.jpg', to: 'images/preview.jpg' },
+            ],
+        }),
 		new HtmlWebpackPlugin({
 			title: "Wedding",
-			meta: [ {'viewport': 'width=device-width, initial-scale=1, user-scalable=no'},
-			{ "name": "description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
-			{ "property": "og:title", "content": "Joshua and Olivia's Wedding" },
-			{ "property": "og:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
-			{ "property": "og:image", "content": "./src/assets/images/main-image.png" },
-			{ "property": "og:url", "content": "https://joshandolivia.love" },
-			{ "property": "og:type", "content": "website" },
-			{ "name": "twitter:card", "content": "summary_large_image" },
-			{ "name": "twitter:title", "content": "Joshua and Olivia's Wedding" },
-			{ "name": "twitter:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
-			{ "name": "twitter:image", "content": "./src/assets/images/main-image.png" }
+			meta: [ 
+				{'viewport': 'width=device-width, initial-scale=1, user-scalable=no'},
+				{ "name": "description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
+				{ "property": "og:title", "content": "Joshua and Olivia's Wedding" },
+				{ "property": "og:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
+				{ "property": "og:image", "content": "images/preview.jpg"},
+				{ "property": "og:url", "content": "https://joshandolivia.love" },
+				{ "property": "og:type", "content": "website" },
+				{ "name": "twitter:card", "content": "summary_large_image" },
+				{ "name": "twitter:title", "content": "Joshua and Olivia's Wedding" },
+				{ "name": "twitter:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
+				{ "name": "twitter:image", "content": "images/preview.jpg"},
 			],
 			favicon: "./src/assets/images/icons/favicon.png"
 		}),
