@@ -55,7 +55,7 @@ export default class AboutTheCouple extends PageSection{
 						"<br /><br />",
 						"Upon the 29th of January, 2022, on a beautiful starry night in Mexico's warm embarce, amid a playful debate about the constellation",
 						"Orion, Josh sensed a moment ripe to take a lover's chance to send their relationship to the next level.",
-						"\"It's written in the stars,\" he mused. And as he spoke, a shooting star flew accross the sky and through the belt of Orian.",
+						"\"It's written in the stars,\" he mused. And as he spoke, a shooting star flew accross the sky and through the belt of Orion.",
 						"A profound blessing from the heavans. And with the cosmos bearing witness he got down on one knee.",
 						"No ring in hand (as the proposal was not planned), yet love's intent most clearly burned, A Ferrero Rocher,",
 						"a token rich in meaning, though in gold unweighed.",
