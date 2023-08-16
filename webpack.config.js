@@ -82,13 +82,13 @@ module.exports = {
 			{ "name": "description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
 			{ "property": "og:title", "content": "Joshua and Olivia's Wedding" },
 			{ "property": "og:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
-			{ "property": "og:image", "content": "./src/assets/images/.main-image.png" },
+			{ "property": "og:image", "content": "./src/assets/images/main-image.png" },
 			{ "property": "og:url", "content": "https://joshandolivia.love" },
 			{ "property": "og:type", "content": "website" },
 			{ "name": "twitter:card", "content": "summary_large_image" },
 			{ "name": "twitter:title", "content": "Joshua and Olivia's Wedding" },
 			{ "name": "twitter:description", "content": "Welcome to the website for Joshua and Olivia's upcoming wedding. Find all the information you need here." },
-			{ "name": "twitter:image", "content": "./src/assets/images/.main-image.png" }
+			{ "name": "twitter:image", "content": "./src/assets/images/main-image.png" }
 			],
 			favicon: "./src/assets/images/icons/favicon.png"
 		}),
