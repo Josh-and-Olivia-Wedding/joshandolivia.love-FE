@@ -24,6 +24,7 @@ concurrency:
 jobs:
   # Build job
   build:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -31,27 +32,36 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14' # or whatever version you're using
+          node-version: '16'
 
       - name: Install Dependencies
         run: npm install
 
       - name: Build Project
         run: npm run build # or webpack --config webpack.config.js, if that's how you run your build
+        
+      - name: Upload artifact 
         with:
-          source: ./dist
-          destination: ./_site
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+          name: page
+          path: dist
+        uses: actions/upload-artifact@v2
 
   # Deployment job
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    environment:
+      name: github-pages
+      url: https://joshandolivia.love
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: page
+          path: .
+      - uses: actions/configure-pages@v1
+      - uses: actions/upload-pages-artifact@v1
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@main
