@@ -44,7 +44,7 @@ jobs:
         with:
           name: page
           path: dist
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
 
   # Deployment job
   deploy:
@@ -55,7 +55,7 @@ jobs:
       url: https://joshandolivia.love
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: page
           path: .
