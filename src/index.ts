@@ -20,12 +20,12 @@ faradilaFontFace.load().then(f=>{
 import { dot } from "dothtml";
 import App from "./home/app";
 import StaryBg from "./components/stary-bg";
-import Splash from "./components/splash";
+// import Splash from "./components/splash";
 
 
 dot("body")
 	.h(new StaryBg())
-	.h(new Splash());
+	.h(new App());
 
 dot.css("body")
 	.margin(0)
