@@ -2,6 +2,9 @@ import { IDotCss, dot } from "dothtml";
 import PageSection from "./page-section";
 import mainImage from "../assets/images/main-image.jpg";
 import EVENT_DETAILS from "../event-details";
+import DateWidget from "./date-widget";
+
+const CURSIVE_FONT = "Script MT, Segoe script, Rage, Lucida Handwriting, cursive, Satisfy";
 
 const WEDDING_DATE = EVENT_DETAILS.date;
 
@@ -28,8 +31,6 @@ export default class MainSection extends PageSection{
 		const dateOptions = { year: 'numeric', month: 'long', day: 'numeric' };
 		const timeOptions = { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' };
 		
-		const formattedDate = WEDDING_DATE.toLocaleDateString('en-US', dateOptions as any);
-		const formattedTime = WEDDING_DATE.toLocaleTimeString('en-US', timeOptions as any);
 
 		return super.builder(
 			dot.div(
@@ -38,10 +39,14 @@ export default class MainSection extends PageSection{
 					dot.h1("Josh and Olivia").ref("names")
 					// .p("Special Day").ref("specialDay")
 					.p("Join us in counting down to our special moment.").class("subheading")
+					.br()
+					.br()
 					.div(
 						dot.span(()=>this.props.countdown).ref("countdown")
 					).id("countdown")
-					.p(`Wedding Date: ${formattedDate} at ${formattedTime}`).class("wedding-date")
+					.br()
+					.br()
+					.div(new DateWidget())
 				).class("overlay")
 			).class("section-container")
 		);
@@ -93,6 +98,7 @@ export default class MainSection extends PageSection{
 		css(".subheading")
 			.color("white")
 			.fontWeight("300")
+			.fontFamily(CURSIVE_FONT)
 			.fontSizeEm(1.3)
 
 		css(".wedding-date")
@@ -112,7 +118,7 @@ export default class MainSection extends PageSection{
 
 		css(this.$refs.names)
 			.fontSizeEm(8)
-			.color("gold")
+			.color("#EB3")
 			// .background("linear-gradient(45deg, #000000, #221100, #000000)")
 			.padding(20)
 			.borderRadius(30)
