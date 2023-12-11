@@ -7,7 +7,7 @@ export default class DateWidget extends DotComponent{
 		return dot.table(
 			dot.tr(
 				dot
-					.td("12 PM").class("td1")
+					.td("3:45 PM").class("td1")
 					.td("Jan 13").class("td2")
 					.td("2024").class("td3")
 			)
