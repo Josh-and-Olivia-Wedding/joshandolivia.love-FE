@@ -3,6 +3,8 @@ import MainSection from "./main-section";
 import StaryBg from "../components/stary-bg";
 import RsvpSection from "./rsvp-section";
 import AboutTheCouple from "./about-the-couple";
+import UnsubscribePane from "./rsvp-stuff/unsubscribe-pane";
+import ConfirmationPane from "./rsvp-stuff/confirmation-pane";
 
 enum SIZE_MODE {
 	DESKTOP,
@@ -20,9 +22,19 @@ export default class App extends DotComponent{
 		this.resize();
 		
 		return dot.div(
-			dot.h(this.mainSection)
-			.h(new RsvpSection())
-			.h(new AboutTheCouple())
+
+			dot.when(window.location.hash.startsWith("#confirm_") || window.location.hash.startsWith("#decline_"), ()=>{
+				return new ConfirmationPane();
+			})
+			.otherwiseWhen(window.location.hash.startsWith("#unsubscribe_"), ()=>{
+				return new UnsubscribePane();
+			})
+			.otherwise(()=>{
+				return dot.h(this.mainSection)
+					.h(new RsvpSection())
+					.h(new AboutTheCouple());
+			})
+
 		).ref("container")
 		.class({
 			"mobile-content": ()=> this.props.sizeMode == SIZE_MODE.MOBILE,

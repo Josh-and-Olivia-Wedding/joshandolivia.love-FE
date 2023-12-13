@@ -1,0 +1,293 @@
+import { IDotGenericElement } from "dothtml/lib/i-dot";
+import PageSection from "../page-section";
+import { IDotCss, dot } from "dothtml";
+import RsvpOptions from "./rsvp-options";
+import { Guest } from "./guest";
+import language from "./language";
+import inviteTemplate from "./invite-template";
+
+type MasterGuest = Guest & {
+	Plus1Data: string;
+}
+
+export default class ConfirmationPane extends PageSection{
+
+	props: { [key: string]: any; } = {
+		loadingMessage: null,
+		guest: null as MasterGuest,
+		err: null,
+		lang: localStorage.getItem("lang") || "en",
+		eventDetailsHtml: ""
+	};
+
+	plus1s: Array<Guest> = [];
+
+	getStr(str: keyof (typeof language), args?: Array<string|number|boolean>){
+		return ()=>{
+			let final = language[str][this.props.lang];
+			if(args){
+				for(let i = 0; i < args.length; i++){
+					final = final.split(`{${i}}`).join(args[i]);
+				}
+			}
+			return final;
+		};
+	}
+
+	getRawStr(str: keyof (typeof language), args?: Array<string|number|boolean>){
+		let final = language[str][this.props.lang];
+		if(args){
+			for(let i = 0; i < args.length; i++){
+				final = final.split(`{${i}}`).join(args[i]);
+			}
+		}
+		return final;
+	}
+
+	ready(): void {
+		this.fetchGuest();
+	}
+
+	async fetchGuest(){
+		
+		let hash = window.location.hash;
+
+		let guestId = hash.split("_")[1];
+
+		if(!guestId || guestId.length == 0){
+			this.props.err = "Invalid guestId.";
+			return;
+		}
+
+		this.props.loadingMessage = language.loadingGuestMsg[this.props.lang];
+
+		try{
+		
+			let result = await fetch(`https://2fiucgicl8.execute-api.us-east-2.amazonaws.com/get-invite-details?guestId=${guestId}`);
+			let jsonData = await result.json();
+			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
+
+			
+			if(jsonData.RsvpStatus == "PENDING"){
+				// Set default RSVP!
+				let rsvp = window.location.hash.indexOf("#confirm_") == 0 ? "CONFIRMED" : "DECLINED";
+				
+				jsonData.RsvpStatus = rsvp;
+				for(let i = 0; i < this.plus1s.length; i++){
+					this.props.plus1s[i].RsvpStatus = rsvp;
+				}
+
+				
+				
+				await this.saveGuest(jsonData);
+			}
+			
+			this.props.loadingMessage = "";
+			this.props.guest = jsonData;
+			this.$updateStyles();
+			this.reloadEventDetailsHtml();
+			return jsonData;
+		}
+		catch(e){
+			console.error(e);
+			this.props.loadingMessage = language.fetchGuestError[this.props.lang];
+		}
+	}
+
+	async updatePlus1(guest: Guest){
+		await this.saveGuest();
+	}
+
+	async saveGuest(jsonData = this.props.guest){
+		this.props.loadingMessage = language.savingRsvpMsg[this.props.lang];
+		jsonData.Plus1Data = JSON.stringify(this.plus1s.map(x=>x));
+		let result = await fetch(`https://2fiucgicl8.execute-api.us-east-2.amazonaws.com/update-guest-status`, {
+			method: "POST",
+			body: JSON.stringify(jsonData)
+		});
+		this.props.loadingMessage = "";
+	}
+
+	reloadEventDetailsHtml(){
+		this.props.eventDetailsHtml = inviteTemplate
+			.replace("{invitationDetailsGuestName}", this.getStr("invitationDetailsGuestName", [this.props.guest.FullName])())
+			.replace("{invitationDetailsAmpersand}", this.getStr("invitationDetailsAmpersand")())
+			.replace("{invitationDetailsGroomNamePrefix}", this.getStr("invitationDetailsGroomNamePrefix")())
+			.replace("{invitationDetailsBrideNamePrefix}", this.getStr("invitationDetailsBrideNamePrefix")())
+			.replace("{invitationDetailsMessage}", this.getStr("invitationDetailsMessage")())
+			.replace("{weddingDate}", this.getStr("weddingDate")())
+	}
+
+	builder(): IDotGenericElement {
+		return super.builder(
+			// dot.h1(this.getStr("reservationDetailsHeader"))
+			dot.div(
+				dot.when(()=>{
+					let g = this.props.guest;
+					let e = this.props.err;
+					return !!(g || e);
+				}, ()=>{
+					if(this.props.err){
+						return dot.p(this.getStr("fetchGuestError"))
+					}
+					else{
+						// return dot.h2(this.getStr("eventInformationHeader"))
+						return dot.div(
+							dot.div(()=>this.props.eventDetailsHtml).class("invite-details")
+							.div(
+								dot.img().class("love-photo").src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/rsvp-love-img.jpg").width(400)
+							).class("love-photo-container")
+						).class("invite-section")
+
+						.h2(this.getStr("rsvpHeader"))
+						.div(
+							dot.h(()=>{
+								let options = new RsvpOptions(this.props.guest)
+								options.on("update", (guest)=>{
+									this.saveGuest(guest);
+								});
+								return options;
+							})
+							.div(
+								dot.h2(this.getStr("yourPlusOnesHeader"))
+								.div(dot.when(!this.plus1s?.length, ()=>dot.p(this.getStr("noPlusOnesMessage"))))
+							)
+							.each(this.plus1s, d=>{
+								let options = new RsvpOptions(d);
+								options.on("update", (guest)=>{});
+								return options;
+							})
+						)
+
+						.h2(this.getStr("weddingFeastMenuHeader"))
+						.p(this.getStr("celebrationOfLoveFlavor"))
+						.div(
+								dot.ol(
+									dot.li(this.getStr("appetizersTeasePalate"))
+									.li(this.getStr("butternutSquashSoup"))
+									.li(this.getStr("mushroomPestoRigatoni"))
+									.li(this.getStr("chooseYourMain"))
+									.ul(
+										dot.li(this.getStr("veggieFiloTurnover"))
+										.li(this.getStr("vegetableTikkaSkewer"))
+										.li(this.getStr("veganRiceStuffedPeppers"))
+									)
+									.li(this.getStr("iceCreamCrepe"))
+								)
+						).class("ol-container").br()
+						.div(
+							dot.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/turnover.png"))
+							.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/skewers.png"))
+							.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/peppers.png"))
+						).class("food-images").br()
+
+						.h2(this.getStr("giftsHeader"))
+						.p(this.getStr("giftsMessage"))
+
+						.h2(this.getStr("locationHeader"))
+						.div(
+							dot.div(
+								dot.p(this.getStr("ceremonyReceptionLocation")().replace("Fantasy Farm", `<a href="https://fantasyfarm.ca" target="_blank">Fantasy Farm</a>`).replace("Ballroom", "<b>Ballroom</b>"))
+							).class("ceremony-location")
+							.br()
+							.a(
+								dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/map.png")
+							).class("map-a").hRef("https://goo.gl/maps/fDuH6GWWtvymuGDK7").target("_blank")
+						)
+
+					}
+
+				})
+				.otherwise(()=>{
+					return dot.p(()=>this.props.loadingMessage)
+
+				})
+			)
+		);
+	}
+
+	style(css: IDotCss): void {
+		super.style(css);
+
+		css("li")
+			.marginBottom(8)
+			.color("#EEE")
+			// .fontWeight("bold")
+
+		css(".invite-section")
+			.display("flex")
+			.gap(20)
+			.position("relative")
+			.alignItems("center")
+			.flexWrap("wrap")
+			.textAlign("center");
+
+		css(".love-photo")
+			.borderRadiusP(50)
+			.border("3px solid #AA8730")
+			.boxShadow("0 8px 16px rgba(0, 0, 0, 0.7)")
+			.transition("transform 0.3s ease, opacity 0.3s ease")
+			.filter(f=>f
+				.brightness(150)
+				// .contrast(120)
+				// .sepia(20)
+			)
+
+		css(".love-photo-container")
+			.flexGrow(1)
+
+		css(".invite-details")
+			.flexGrow(3)
+			.backgroundColor("rgba(0,0,0,0.7)")
+			.paddingTop(20)
+			.paddingBottom(20)
+			.borderRadius(20);
+
+		css(".ceremony-location")
+			.backgroundColor(70,55,0,0.7)
+			.borderRadius(8)
+			.padding(8)
+			.color(238,187,51)
+
+		css("a")
+			.color(238, 187, 51)
+			.textDecoration("underline dotted")
+
+		css(".map-a")
+			.display("block")
+			.widthP(100)
+			.textAlign("center")
+
+		css(".map-a img")
+			.widthP(100)
+			.maxWidth(800)
+			.borderRadiusP(25)
+			.border("3px solid white")
+			.boxShadow("0 8px 16px rgba(0, 0, 0, 0.7)")
+			.filter(f => f
+				// .contrast(150)
+				.brightness(90)
+				// .hueRotate("90deg" as any)
+				// .grayscale(40)
+				.sepia(100)
+			)
+
+		css(".food-images")
+			.gap(5)
+			.display("flex")
+			.justifyContent("space-evenly")
+			.flexWrap("wrap")
+			
+		css(".food-images div")
+			.textAlign("center")
+			.flexGrow(1)
+
+		css(".food-images img")
+			.width(250)
+			.height(250)
+			.borderRadiusP(50)
+			.border("3px solid #AA8220")
+			.borderColor(238,187,51)
+			.boxShadow("0 8px 16px rgba(0, 0, 0, 0.7)")
+	}
+}
