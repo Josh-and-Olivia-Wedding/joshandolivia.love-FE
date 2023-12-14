@@ -171,7 +171,7 @@ export default class ConfirmationPane extends PageSection{
 				
 				jsonData.RsvpStatus = rsvp;
 				for(let i = 0; i < this.plus1s.length; i++){
-					this.props.plus1s[i].RsvpStatus = rsvp;
+					this.plus1s[i].RsvpStatus = rsvp;
 				}
 
 				await this.saveGuest(jsonData);
