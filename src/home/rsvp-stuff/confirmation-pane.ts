@@ -16,7 +16,7 @@ export default class ConfirmationPane extends PageSection{
 		loadingMessage: null,
 		guest: null as MasterGuest,
 		err: null,
-		lang: localStorage.getItem("lang") || "en",
+		lang: localStorage.getItem("lang") || "el",
 		eventDetailsHtml: ""
 	};
 
@@ -46,6 +46,14 @@ export default class ConfirmationPane extends PageSection{
 
 	ready(): void {
 		this.fetchGuest();
+	}
+
+	changeLang(lang){
+		dot.bus.emit("language", lang);
+		this.props.lang = lang;
+		localStorage.setItem("lang", lang);
+		this.$updateStyles();
+		this.reloadEventDetailsHtml();
 	}
 
 	async showModal(){
@@ -114,6 +122,15 @@ export default class ConfirmationPane extends PageSection{
 		}
 
 		this.props.loadingMessage = language.loadingGuestMsg[this.props.lang];
+
+		{
+			let userLang = navigator.language || navigator["userLanguage"]; 
+			userLang = (userLang||"").split('-')[0];
+			if(userLang != "el" && userLang != "fr") userLang = "en";
+			this.props.lang = userLang;
+			localStorage.setItem("lang", this.props.lang);
+		}
+
 
 		try{
 		

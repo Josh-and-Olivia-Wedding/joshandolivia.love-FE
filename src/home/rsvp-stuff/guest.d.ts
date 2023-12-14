@@ -6,4 +6,5 @@ export type Guest = {
 	DietaryRestrictions: string;
 	DrinksAlcohol: boolean;
 	IsChild: boolean;
+	Lang: string;
 }
