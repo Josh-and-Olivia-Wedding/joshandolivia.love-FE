@@ -10,6 +10,11 @@ type MasterGuest = Guest & {
 	Plus1Data: string;
 }
 
+type ModelButton = {
+	caption: string;
+	value: string;
+}
+
 export default class ConfirmationPane extends PageSection{
 
 	props: { [key: string]: any; } = {
@@ -56,24 +61,27 @@ export default class ConfirmationPane extends PageSection{
 		this.reloadEventDetailsHtml();
 	}
 
-	async showModal(){
+	async showModal(message: string, buttons: [ModelButton]): Promise<string>{
 		let removing = false;
-		return new Promise((a, b) => {
+		return new Promise<string>((resolve) => {
 			dot(document.body).div(
 				dot.div(
-					dot.span(this.getStr("rsvpConfirmation"))
+					dot.span(message)
 					.br()
 					.br()
-					.button("OK!").style(
-						dot.css.padding(10).fontSize(30).backgroundColor("gold").cursor("pointer")
-					).onClick(()=>{ 
-						if(removing) return;
-						removing = true;
-						// dot("#modal").style(dot.css.opacity(0));
-						document.getElementById("modal").style.opacity = "0";
-						setTimeout(()=>{
-							document.body.removeChild(document.getElementById("modal"));
-						},600);
+					.each(buttons, b=>{
+						return dot.button(b.caption).style(
+							dot.css.padding(10).fontSize(30).backgroundColor("gold").cursor("pointer").margin(20)
+						).onClick(()=>{ 
+							if(removing) return;
+							removing = true;
+							// dot("#modal").style(dot.css.opacity(0));
+							document.getElementById("modal").style.opacity = "0";
+							setTimeout(()=>{
+								document.body.removeChild(document.getElementById("modal"));
+								resolve(b.value);
+							},600);
+						})
 					})
 				)
 				.style(dot.css
@@ -139,8 +147,27 @@ export default class ConfirmationPane extends PageSection{
 			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
 			
 			if(jsonData.RsvpStatus == "PENDING"){
+
+				// If it's the first load, set the language to whatever the invite says. This is a special feature for certain guests.
+
+				if(jsonData.Lang == "el"){
+					this.props.lang = jsonData.Lang;
+					localStorage.setItem("lang", jsonData.Lang);
+				}
+
 				// Set default RSVP!
-				let rsvp = window.location.hash.indexOf("#confirm_") == 0 ? "CONFIRMED" : "DECLINED";
+
+				let rsvp = "DECLINED";
+				if(window.location.hash.indexOf("#invite_") == 0){
+					rsvp = await this.showModal(this.getStr("inviteModalQuestion")(), [
+						{caption: this.getStr("yesNoBtnYes")() as string, value: "CONFIRMED"},
+						{caption: this.getStr("yesNoBtnNo")() as string, value: "DECLINED"},
+					]);
+				}
+				else{
+					rsvp = window.location.hash.indexOf("#confirm_") == 0 ? "CONFIRMED" : "DECLINED";
+				}
+
 				
 				jsonData.RsvpStatus = rsvp;
 				for(let i = 0; i < this.plus1s.length; i++){
@@ -148,7 +175,7 @@ export default class ConfirmationPane extends PageSection{
 				}
 
 				await this.saveGuest(jsonData);
-				this.showModal();
+				this.showModal(this.getStr("rsvpConfirmation")(), [{caption: "OK", value: "ok"}]);
 			}
 			
 			this.props.loadingMessage = "";
