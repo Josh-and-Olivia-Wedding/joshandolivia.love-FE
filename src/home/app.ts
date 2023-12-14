@@ -20,10 +20,14 @@ export default class App extends DotComponent{
 	builder(){
 		this.mainSection = new MainSection();
 		this.resize();
+
+		const queryString = window.location.search;
+		const urlParams = new URLSearchParams(queryString);
+		const paramValue = urlParams.get("invite");
 		
 		return dot.div(
 
-			dot.when(window.location.hash.startsWith("#confirm_") || window.location.hash.startsWith("#invite_") || window.location.hash.startsWith("#decline_"), ()=>{
+			dot.when((!!paramValue) || window.location.hash.startsWith("#confirm_") || window.location.hash.startsWith("#invite_") || window.location.hash.startsWith("#decline_"), ()=>{
 				return new ConfirmationPane();
 			})
 			.otherwiseWhen(window.location.hash.startsWith("#unsubscribe_"), ()=>{

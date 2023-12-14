@@ -119,10 +119,20 @@ export default class ConfirmationPane extends PageSection{
 	}
 
 	async fetchGuest(){
-		
-		let hash = window.location.hash;
 
-		let guestId = hash.split("_")[1];
+		let guestId = "";
+		
+		const queryString = window.location.search;
+		const urlParams = new URLSearchParams(queryString);
+		const paramValue = urlParams.get("invite");
+
+		if(paramValue){
+			guestId = paramValue.split("_")[0];
+		}
+		else{
+			let hash = window.location.hash;
+			guestId = hash.split("_")[1];
+		}
 
 		if(!guestId || guestId.length == 0){
 			this.props.err = "Invalid guestId.";
@@ -158,7 +168,8 @@ export default class ConfirmationPane extends PageSection{
 				// Set default RSVP!
 
 				let rsvp = "DECLINED";
-				if(window.location.hash.indexOf("#invite_") == 0){
+
+				if(paramValue || window.location.hash.indexOf("#invite_") == 0){
 					rsvp = await this.showModal(this.getStr("inviteModalQuestion")(), [
 						{caption: this.getStr("yesNoBtnYes")() as string, value: "CONFIRMED"},
 						{caption: this.getStr("yesNoBtnNo")() as string, value: "DECLINED"},
