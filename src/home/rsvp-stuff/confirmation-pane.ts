@@ -61,7 +61,7 @@ export default class ConfirmationPane extends PageSection{
 		this.reloadEventDetailsHtml();
 	}
 
-	async showModal(message: string, buttons: [ModelButton]): Promise<string>{
+	async showModal(message: string, buttons: Array<ModelButton>): Promise<string>{
 		let removing = false;
 		return new Promise<string>((resolve) => {
 			dot(document.body).div(
@@ -190,10 +190,6 @@ export default class ConfirmationPane extends PageSection{
 		}
 	}
 
-	async updatePlus1(guest: Guest){
-		await this.saveGuest();
-	}
-
 	async saveGuest(jsonData = this.props.guest){
 		this.props.loadingMessage = language.savingRsvpMsg[this.props.lang];
 		jsonData.Plus1Data = JSON.stringify(this.plus1s.map(x=>x));
@@ -202,6 +198,19 @@ export default class ConfirmationPane extends PageSection{
 			body: JSON.stringify(jsonData)
 		});
 		this.props.loadingMessage = "";
+	}
+
+	async savePlusOne(data){
+		// for(let i = 0; i < this.plus1s.length; i++){
+		// 	let p1 = this.plus1s[i];
+		// 	if(p1.Id == data.Id && p1.FullName == data.FullName){
+		// 		console.log(p1);
+		// 		break;
+		// 	}
+		// }
+
+		// this.reloadEventDetailsHtml();
+		await this.saveGuest();
 	}
 
 	reloadEventDetailsHtml(){
@@ -250,7 +259,9 @@ export default class ConfirmationPane extends PageSection{
 							)
 							.each(this.plus1s, d=>{
 								let options = new RsvpOptions(d);
-								options.on("update", (guest)=>{});
+								options.on("update", (guest)=>{
+									this.savePlusOne(guest);
+								});
 								return options;
 							})
 						)

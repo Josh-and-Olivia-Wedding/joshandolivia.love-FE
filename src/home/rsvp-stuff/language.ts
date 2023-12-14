@@ -234,6 +234,22 @@ const language = {
         en: "Will you be attending Joshua and Olivia's wedding on January 13, 2024 at 3:45 in Toronto?",
         fr: "Serez-vous présent(e) au mariage de Joshua et Olivia le 13 janvier 2024 à 15h45 à Toronto ?",
         el: "Θα παραστείτε στον γάμο του Joshua και της Olivia στις 13 Ιανουαρίου 2024 στις 3:45 στο Τορόντο;"
+    },
+
+    contactInfoHeader: {
+        en: "Contact Info",
+        fr: "Informations de contact",
+        el: "Στοιχεία Επικοινωνίας"
+    },
+    phoneLabel: {
+        en: "Phone:",
+        fr: "Téléphone :",
+        el: "Τηλέφωνο:"
+    },
+    emailLabel: {
+        en: "Email:",
+        fr: "Email :",
+        el: "Ηλεκτρονικό Ταχυδρομείο:"
     }
 }
 

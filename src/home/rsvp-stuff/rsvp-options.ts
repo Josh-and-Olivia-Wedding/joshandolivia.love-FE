@@ -25,6 +25,7 @@ export default class RsvpOptions extends DotComponent{
 	rsvpButton: YesNoSelect;
 	alcoholButton: YesNoSelect;
 	dietaryRestrictions: ClickableInput;
+	phoneField: any;
 
 	constructor(guest: Guest){
 		super(guest);
@@ -49,15 +50,25 @@ export default class RsvpOptions extends DotComponent{
 	save(){
 		this.events.update(this.guest);
 
-		this.props.showSaveTxt = true;
+		dot.css(this.$refs.savedTxt)
+			.opacity(1)
+			.transition("opacity 0.02s ease")
+		
 		setTimeout(()=>{
-			this.props.showSaveTxt = false;
+			dot.css(this.$refs.savedTxt)
+				.opacity(0)
+				.transition("opacity 2s ease")
+			// this.props.showSaveTxt = false;
 
 		}, 1000);
 	}
 
 	updateDietaryRestrictions(value: string){
 		this.guest.DietaryRestrictions = value;
+		this.save();
+	}
+	updatePhoneNumber(value: string){
+		this.guest.Phone = value;
 		this.save();
 	}
 	updateAlcohol(value: boolean){
@@ -95,8 +106,9 @@ export default class RsvpOptions extends DotComponent{
 		// this.props.name = guest.Name;
 		// this.props.email = guest.Email;
 
-		this.props.attending = this.guest.RsvpStatus == "CONFIRMED";
-		this.rsvpButton = new YesNoSelect(this.props.attending);
+		let attending = this.guest.RsvpStatus == "CONFIRMED";
+		// this.props.attending = this.guest.RsvpStatus == "CONFIRMED";
+		this.rsvpButton = new YesNoSelect(attending);
 
 		this.guest.MealMainSelectionId = this.guest.MealMainSelectionId || "turnover";
 
@@ -105,10 +117,14 @@ export default class RsvpOptions extends DotComponent{
 		this.props.peppersSelected = this.guest.MealMainSelectionId == "peppers";
 
 		this.rsvpButton.on("change", (value)=>{
-			this.props.attending = value;
-			if(value){
-				this.$updateStyles();
-			}
+			// this.props.attending = value;
+			attending = value;
+			// if(value){
+			// 	// this.$updateStyles();
+			// }
+
+			this.$refs.isAttending.style.display = value ? "block" : "none";
+			this.$refs.isNotAttending.style.display = !value ? "block" : "none";
 
 			this.guest.RsvpStatus = value ? "CONFIRMED" : "DECLINED";
 
@@ -118,6 +134,9 @@ export default class RsvpOptions extends DotComponent{
 		this.alcoholButton = new YesNoSelect(true);
 		this.dietaryRestrictions = new ClickableInput(this.guest.DietaryRestrictions);
 		this.dietaryRestrictions.on("save", (value)=>{this.updateDietaryRestrictions(value);});
+
+		// this.phoneField = new ClickableInput(this.guest.Phone);
+		// this.phoneField.on("save", (value)=>{this.updatePhoneNumber(value);});
 
 		return dot.div(
 			dot.div(
@@ -134,8 +153,8 @@ export default class RsvpOptions extends DotComponent{
 
 				dot.div(
 					dot.div(
-						dot.when(!this.guest.IsChild, ()=>{
-							return dot.b(this.getStr("mealSelectionHeader")).class("subheader")
+						dot.div(
+							dot.b(this.getStr("mealSelectionHeader")).class("subheader")
 							.div(
 								dot.div(this.getStr("chooseMainCourse"))
 								.div(
@@ -152,7 +171,8 @@ export default class RsvpOptions extends DotComponent{
 										selected: ()=>this.props.peppersSelected
 									})
 								).class("meal-btns")
-						)})
+							)
+						).class({"hidden2": ()=>this.guest.IsChild})
 					)
 					.b(this.getStr("preferencesHeader")).class("subheader")
 					.div(
@@ -165,23 +185,25 @@ export default class RsvpOptions extends DotComponent{
 							// .value(this.guest.DrinksAlcohol)
 							.class({
 								"alcohol-check": true,
-								"hidden": ()=> !!this.guest.IsChild
+								"hidden2": !!this.guest.IsChild
 							})
 							.type("checkbox")
 							.onChange((e)=>this.updateAlcohol((e.target as HTMLInputElement).checked))
 							.ref("drinksAlcohol")
 						.label(this.getStr("expectDrinkingAlcohol"))
 					)
-				).class({
-					"hidden": ()=>!this.props.attending
-				})
+					// .b(this.getStr("contactInfoHeader")).class("subheader")
+					// .div(
+					// 	dot.span(this.getStr("phoneLabel"))
+					// 	.br()
+					// 	.h(this.phoneField)
+					// )
+				).ref("isAttending")
 
-				.when(()=>!this.props.attending, ()=>{
-					return dot.i(this.getStr("notAttending"))
-				})
-			).class({
-				"options": true
-			})
+				.i(this.getStr("notAttending")).ref("isNotAttending")
+				// .when(()=>!this.props.attending, ()=>{
+				// })
+			).class("options")
 		).class("rsvp-options");
 	}
 
@@ -190,7 +212,8 @@ export default class RsvpOptions extends DotComponent{
 	}
 
 	style(css: IDotCss): void {
-		css(".hidden")
+		// return;
+		css(".hidden2")
 			.display("none");
 
 		css(".rsvp-options")
@@ -269,5 +292,7 @@ export default class RsvpOptions extends DotComponent{
 			.height(22)
 			.display("inline-block")
 			.top(-3)
+		css(this.$refs.isAttending).display(this.guest.RsvpStatus == "CONFIRMED" ? "block" : "none");
+		css(this.$refs.isNotAttending).display(this.guest.RsvpStatus != "CONFIRMED" ? "block" : "none");
 	}
 }
