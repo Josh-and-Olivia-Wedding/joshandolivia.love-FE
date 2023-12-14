@@ -48,6 +48,60 @@ export default class ConfirmationPane extends PageSection{
 		this.fetchGuest();
 	}
 
+	async showModal(){
+		let removing = false;
+		return new Promise((a, b) => {
+			dot(document.body).div(
+				dot.div(
+					dot.span(this.getStr("rsvpConfirmation"))
+					.br()
+					.br()
+					.button("OK!").style(
+						dot.css.padding(10).fontSize(30).backgroundColor("gold").cursor("pointer")
+					).onClick(()=>{ 
+						if(removing) return;
+						removing = true;
+						// dot("#modal").style(dot.css.opacity(0));
+						document.getElementById("modal").style.opacity = "0";
+						setTimeout(()=>{
+							document.body.removeChild(document.getElementById("modal"));
+						},600);
+					})
+				)
+				.style(dot.css
+					.position("absolute")
+					.color("white")
+					.leftP(50)
+					.topP(50)
+					.margin("auto")
+					.transform(t => t.translateXP(-50).translateYP(-50))
+					.minWidth(300)
+					.maxWidth(800)
+					.minHeight(200)
+					.padding(50)
+					.paddingTop(100)
+					.fontSize(24)
+					.backgroundColor(30,30,30,0.8)
+					.borderRadius(80)
+					.textAlign("center")
+					.verticalAlign("middle")
+					.border("5px solid gold")
+				)
+			).style(dot.css
+				.position("fixed")
+				.top(0)
+				.left(0)
+				.right(0)
+				.bottom(0)
+				.zIndex(1000)
+				.backdropFilter(f=>f.blur(5).brightness(50).sepia(100))
+				.opacity(1)
+				.border("50px solid black")
+				.transition("opacity 0.5s ease")
+			).id("modal");
+		});
+	}
+
 	async fetchGuest(){
 		
 		let hash = window.location.hash;
@@ -66,7 +120,6 @@ export default class ConfirmationPane extends PageSection{
 			let result = await fetch(`https://2fiucgicl8.execute-api.us-east-2.amazonaws.com/get-invite-details?guestId=${guestId}`);
 			let jsonData = await result.json();
 			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
-
 			
 			if(jsonData.RsvpStatus == "PENDING"){
 				// Set default RSVP!
@@ -77,9 +130,8 @@ export default class ConfirmationPane extends PageSection{
 					this.props.plus1s[i].RsvpStatus = rsvp;
 				}
 
-				
-				
 				await this.saveGuest(jsonData);
+				this.showModal();
 			}
 			
 			this.props.loadingMessage = "";

@@ -23,7 +23,7 @@ export default class App extends DotComponent{
 		
 		return dot.div(
 
-			dot.when(window.location.hash.startsWith("#confirm_") || window.location.hash.startsWith("#decline_"), ()=>{
+			dot.when(window.location.hash.startsWith("#confirm_") || window.location.hash.startsWith("#invite_") || window.location.hash.startsWith("#decline_"), ()=>{
 				return new ConfirmationPane();
 			})
 			.otherwiseWhen(window.location.hash.startsWith("#unsubscribe_"), ()=>{

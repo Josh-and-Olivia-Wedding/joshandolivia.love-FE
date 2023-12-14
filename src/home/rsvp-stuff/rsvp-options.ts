@@ -15,6 +15,7 @@ export default class RsvpOptions extends DotComponent{
 		turnoverSelected: true,
 		skewerSelected: false,
 		peppersSelected: false,
+		showSaveTxt: false,
 	};
 
 	events = {
@@ -47,6 +48,12 @@ export default class RsvpOptions extends DotComponent{
 
 	save(){
 		this.events.update(this.guest);
+
+		this.props.showSaveTxt = true;
+		setTimeout(()=>{
+			this.props.showSaveTxt = false;
+
+		}, 1000);
 	}
 
 	updateDietaryRestrictions(value: string){
@@ -115,6 +122,11 @@ export default class RsvpOptions extends DotComponent{
 		return dot.div(
 			dot.div(
 				dot.div(this.getStr("guestHeader", [this.guest.FullName])).class("guest-name")
+				.div(this.getStr("savedConfirmation")).class({
+					"saved-txt": true,
+					"hide": ()=>!this.props.showSaveTxt,
+					"show": ()=>this.props.showSaveTxt
+				}).ref("savedTxt")
 				.div(this.getStr("attendingLabel"))
 				.div(this.rsvpButton)
 			).class("header")
@@ -194,7 +206,19 @@ export default class RsvpOptions extends DotComponent{
 			.fontSize(20)
 			
 		css(".guest-name")
+			.flexGrow(10)
+
+		css(".saved-txt")
 			.flexGrow(1)
+			.color("green")
+			.fontWeight("bold")
+
+		css(".saved-txt.hide")
+			.opacity(0)
+			.transition("opacity 2s ease")
+		css(".saved-txt.show")
+			.opacity(1)
+			.transition("opacity 0.02s ease")
 		
 		css(".options")
 			.flexDirection("row")

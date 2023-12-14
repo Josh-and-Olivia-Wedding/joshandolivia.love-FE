@@ -30,9 +30,11 @@ export default class ClickableInput extends DotComponent{
 	}
 
 	saveAndClose(){
-		this.props.showInput = false;
-		this.props.value = (this.$refs.input as HTMLInputElement).value;
-		this.events.save(this.props.value);
+		if(this.props.showInput){
+			this.props.showInput = false;
+			this.props.value = (this.$refs.input as HTMLInputElement).value;
+			this.events.save(this.props.value);
+		}
 	}
 	cancel(){
 		this.props.showInput = false;

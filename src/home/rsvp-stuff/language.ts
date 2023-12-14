@@ -216,6 +216,18 @@ const language = {
         en: "Gifts are not required or expected. Your presence on our special day is the best gift we could possibly ask for. However, if you'd like to provide us with a gift to help cover the costs of the event, monetary contributions are welcome. The average cost per person in attendance after all expenses will be around $200 to $300.",
         fr: "Les cadeaux ne sont ni requis ni attendus. Votre présence en ce jour spécial est le plus beau cadeau que nous puissions espérer. Cependant, si vous souhaitez nous offrir un cadeau pour aider à couvrir les frais de l'événement, les contributions monétaires sont les bienvenues. Le coût moyen par personne présente après toutes les dépenses sera d'environ 200 à 300 $.",
         el: "Τα δώρα δεν απαιτούνται ούτε αναμένονται. Η παρουσία σας στην ξεχωριστή μας μέρα είναι το καλύτερο δώρο που θα μπορούσαμε να ζητήσουμε. Ωστόσο, αν θέλετε να μας προσφέρετε ένα δώρο για να βοηθήσετε στην κάλυψη των εξόδων της εκδήλωσης, οι χρηματικές συνεισφορές είναι ευπρόσδεκτες. Το μέσο κόστος ανά πρόσωπο για την παρουσία στην εκδήλωση μετά από όλα τα έξοδα θα είναι περίπου 200 έως 300 δολάρια."
+    },
+
+    rsvpConfirmation: {
+        en: "Your RSVP has been saved. You can use the same link to return to this page and edit your details at any time.",
+        fr: "Votre réponse a été enregistrée. Vous pouvez utiliser le même lien pour revenir à cette page et modifier vos détails à tout moment.",
+        el: "Η απάντησή σας έχει αποθηκευτεί. Μπορείτε να χρησιμοποιήσετε τον ίδιο σύνδεσμο για να επιστρέψετε σε αυτή τη σελίδα και να επεξεργαστείτε τα στοιχεία σας ανά πάσα στιγμή."
+    },
+
+    savedConfirmation: {
+        en: "(Saved!)",
+        fr: "(Enregistré !)",
+        el: "(Αποθηκεύτηκε!)"
     }
 }
 
