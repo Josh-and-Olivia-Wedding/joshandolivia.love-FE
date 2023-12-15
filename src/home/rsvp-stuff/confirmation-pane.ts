@@ -156,7 +156,7 @@ export default class ConfirmationPane extends PageSection{
 			let jsonData = await result.json();
 			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
 			
-			if(jsonData.RsvpStatus == "PENDING"){
+			if(jsonData.RsvpStatus != "CONFIRMED"){
 
 				// If it's the first load, set the language to whatever the invite says. This is a special feature for certain guests.
 
