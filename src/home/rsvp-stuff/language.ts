@@ -79,7 +79,7 @@ const language = {
         en: "Your Plus Ones / Kids",
         fr: "Vos Invités Supplémentaires / Enfants",
         el: "Οι Συνοδοί σας / Παιδιά"
-    }
+    },
     locationHeader: {
         en: "Location",
         fr: "Lieu",
