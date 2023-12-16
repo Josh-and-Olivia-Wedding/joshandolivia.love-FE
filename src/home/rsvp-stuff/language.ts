@@ -76,10 +76,10 @@ const language = {
         el: "Καταναλώνει αλκοόλ αυτός ο καλεσμένος;"
     },
     yourPlusOnesHeader: {
-        en: "Your Plus Ones",
-        fr: "Vos Invités Supplémentaires",
-        el: "Οι Συνοδοί σας"
-    },
+        en: "Your Plus Ones / Kids",
+        fr: "Vos Invités Supplémentaires / Enfants",
+        el: "Οι Συνοδοί σας / Παιδιά"
+    }
     locationHeader: {
         en: "Location",
         fr: "Lieu",
