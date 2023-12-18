@@ -6,7 +6,7 @@ export default class YesNoSelect extends DotComponent{
 
 	props: { [key: string]: any; } = {
 		selected: false,
-		lang: localStorage.getItem("lang") || "en",
+		lang: "en",// localStorage.getItem("lang") || "en",
 	};
 
 	events: { [key: string]: (...params: any[]) => void; } = {

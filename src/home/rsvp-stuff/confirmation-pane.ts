@@ -21,7 +21,7 @@ export default class ConfirmationPane extends PageSection{
 		loadingMessage: null,
 		guest: null as MasterGuest,
 		err: null,
-		lang: localStorage.getItem("lang") || "el",
+		lang: "en",//localStorage.getItem("lang") || "el",
 		eventDetailsHtml: ""
 	};
 

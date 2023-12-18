@@ -10,7 +10,7 @@ export default class RsvpOptions extends DotComponent{
 	guest: Guest = null;
 
 	props: { [key: string]: any; } = {
-		lang: localStorage.getItem("lang") || "en",
+		lang: "en",//localStorage.getItem("lang") || "en",
 		attending: true,
 		turnoverSelected: true,
 		skewerSelected: false,
