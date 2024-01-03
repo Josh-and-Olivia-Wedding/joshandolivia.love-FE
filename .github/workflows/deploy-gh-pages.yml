@@ -41,7 +41,7 @@ jobs:
         run: npm run build # or webpack --config webpack.config.js, if that's how you run your build
         
       - name: Upload artifact 
-        uses: actions/upload-artifact@v3
+        uses: actions/artifact@v4
         with:
           name: github-pages
           path: dist
