@@ -26,13 +26,16 @@ export default class RsvpOptions extends DotComponent{
 	alcoholButton: YesNoSelect;
 	dietaryRestrictions: ClickableInput;
 	phoneField: any;
+	isLocked: boolean;
 
-	constructor(guest: Guest){
+	constructor(guest: Guest, isLocked: boolean){
 		super(guest);
 
 		dot.bus.on("language", (lang)=>{
 			this.props.lang = lang;
 		});
+
+		this.isLocked = isLocked;
 	}
 
 	getStr(str: keyof (typeof language), args?: Array<string|number|boolean>){
@@ -77,6 +80,7 @@ export default class RsvpOptions extends DotComponent{
 	}
 
 	chooseTurnover(){
+		if(this.isLocked) return;
 		this.props.turnoverSelected = true;
 		this.props.skewerSelected = false;
 		this.props.peppersSelected = false;
@@ -85,6 +89,7 @@ export default class RsvpOptions extends DotComponent{
 	}
 
 	chooseSkewer(){
+		if(this.isLocked) return;
 		this.props.turnoverSelected = false;
 		this.props.skewerSelected = true;
 		this.props.peppersSelected = false;
@@ -93,6 +98,7 @@ export default class RsvpOptions extends DotComponent{
 	}
 
 	choosePeppers(){
+		if(this.isLocked) return;
 		this.props.turnoverSelected = false;
 		this.props.skewerSelected = false;
 		this.props.peppersSelected = true;
@@ -108,7 +114,7 @@ export default class RsvpOptions extends DotComponent{
 
 		let attending = this.guest.RsvpStatus == "CONFIRMED";
 		// this.props.attending = this.guest.RsvpStatus == "CONFIRMED";
-		this.rsvpButton = new YesNoSelect(attending);
+		this.rsvpButton = new YesNoSelect(attending, this.isLocked);
 
 		this.guest.MealMainSelectionId = this.guest.MealMainSelectionId || "turnover";
 
@@ -117,6 +123,7 @@ export default class RsvpOptions extends DotComponent{
 		this.props.peppersSelected = this.guest.MealMainSelectionId == "peppers";
 
 		this.rsvpButton.on("change", (value)=>{
+			if(this.isLocked) return;
 			// this.props.attending = value;
 			attending = value;
 			// if(value){
@@ -131,9 +138,11 @@ export default class RsvpOptions extends DotComponent{
 			this.save();
 		});
 
-		this.alcoholButton = new YesNoSelect(true);
-		this.dietaryRestrictions = new ClickableInput(this.guest.DietaryRestrictions);
-		this.dietaryRestrictions.on("save", (value)=>{this.updateDietaryRestrictions(value);});
+		this.alcoholButton = new YesNoSelect(true, this.isLocked);
+		this.dietaryRestrictions = new ClickableInput(this.guest.DietaryRestrictions, this.isLocked);
+		this.dietaryRestrictions.on("save", (value)=>{
+			this.updateDietaryRestrictions(value);
+		});
 
 		// this.phoneField = new ClickableInput(this.guest.Phone);
 		// this.phoneField.on("save", (value)=>{this.updatePhoneNumber(value);});
@@ -188,6 +197,7 @@ export default class RsvpOptions extends DotComponent{
 								"hidden2": !!this.guest.IsChild
 							})
 							.type("checkbox")
+							.disabled(this.isLocked)
 							.onChange((e)=>this.updateAlcohol((e.target as HTMLInputElement).checked))
 							.ref("drinksAlcohol")
 						.label(this.getStr("expectDrinkingAlcohol"))

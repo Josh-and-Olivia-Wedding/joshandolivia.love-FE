@@ -120,7 +120,7 @@ export default class RsvpSection extends PageSection{
 			dot.div(
 				dot.div(
 					dot.h1("RSVP")
-					.p("The wedding is booked for January 13 in Toronto. Invitations will be sent out soon.<br />Your invitation will contain a personal link to log in and view the event details.")
+					.p("The wedding is booked for January 13 in Toronto. Invitations have been sent out already and are locked in.<br />To view event details, use the personal link in your invitation.")
 				).class("overlay")
 			).ref("container").class("section-container")
 		);

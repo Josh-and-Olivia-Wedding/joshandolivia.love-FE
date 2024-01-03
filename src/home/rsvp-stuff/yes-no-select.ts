@@ -13,8 +13,11 @@ export default class YesNoSelect extends DotComponent{
 		"change": ()=>{}
 	}
 
-	constructor(defaultValue: boolean){
+	isLocked = false;
+
+	constructor(defaultValue: boolean, isLocked: boolean){
 		super(defaultValue);
+		this.isLocked = isLocked;
 
 		dot.bus.on("language", (lang)=>{
 			this.props.lang = lang;
@@ -26,6 +29,7 @@ export default class YesNoSelect extends DotComponent{
 	}
 
 	change(){
+		if(this.isLocked) return;
 		this.props.selected = !this.props.selected;
 
 		this.events.change(this.props.selected);

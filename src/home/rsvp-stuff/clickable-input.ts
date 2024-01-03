@@ -12,7 +12,11 @@ export default class ClickableInput extends DotComponent{
 		save: (value: string)=>{}
 	};
 
+	isLocked: boolean = false;
+
 	onClick(){
+		console.log(this.isLocked);
+		if(this.isLocked) return;
 		this.props.showInput = true;
 		(this.$refs.input as HTMLInputElement).value = this.props.value || "";
 		this.$refs.input.focus();
@@ -40,8 +44,10 @@ export default class ClickableInput extends DotComponent{
 		this.props.showInput = false;
 	}
 
-	builder(defaultValue: string): IDotElement {
+	builder(defaultValue: string, isLocked: boolean): IDotElement {
 		this.props.value = defaultValue;
+		this.isLocked = isLocked;
+		console.log("LOCKED?", isLocked);
 
 		return dot.div(
 			dot.input()

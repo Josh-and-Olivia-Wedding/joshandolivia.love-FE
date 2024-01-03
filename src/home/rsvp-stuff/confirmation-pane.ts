@@ -15,6 +15,8 @@ type ModelButton = {
 	value: string;
 }
 
+let isLocked = window.location.search.indexOf("ADMIN=true") == -1;
+
 export default class ConfirmationPane extends PageSection{
 
 	props: { [key: string]: any; } = {
@@ -156,7 +158,7 @@ export default class ConfirmationPane extends PageSection{
 			let jsonData = await result.json();
 			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
 			
-			if(jsonData.RsvpStatus != "CONFIRMED"){
+			if(!isLocked && jsonData.RsvpStatus != "CONFIRMED"){
 
 				// If it's the first load, set the language to whatever the invite says. This is a special feature for certain guests.
 
@@ -255,10 +257,12 @@ export default class ConfirmationPane extends PageSection{
 							).class("love-photo-container")
 						).class("invite-section")
 
+						.h2("Locked In")
+						.div("Our special day is coming up in a matter of days, and reservations are now locked in. For last-minute status changes, contact the bride or groom.")
 						.h2(this.getStr("rsvpHeader"))
 						.div(
 							dot.h(()=>{
-								let options = new RsvpOptions(this.props.guest)
+								let options = new RsvpOptions(this.props.guest, isLocked)
 								options.on("update", (guest)=>{
 									this.saveGuest(guest);
 								});
@@ -269,7 +273,7 @@ export default class ConfirmationPane extends PageSection{
 								.div(dot.when(!this.plus1s?.length, ()=>dot.p(this.getStr("noPlusOnesMessage"))))
 							)
 							.each(this.plus1s, d=>{
-								let options = new RsvpOptions(d);
+								let options = new RsvpOptions(d, isLocked);
 								options.on("update", (guest)=>{
 									this.savePlusOne(guest);
 								});
