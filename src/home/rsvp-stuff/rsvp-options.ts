@@ -167,15 +167,15 @@ export default class RsvpOptions extends DotComponent{
 							.div(
 								dot.div(this.getStr("chooseMainCourse"))
 								.div(
-									dot.button(this.getStr("veggieFiloTurnoverConcise")).onClick(()=>this.chooseTurnover()).class({
+									dot.button(guest.FullName == "Luca Sideris" ? "Leafs and Twigs" : this.getStr("veggieFiloTurnoverConcise")).onClick(()=>this.chooseTurnover()).class({
 										"select-meal-btn": true,
 										selected: ()=>this.props.turnoverSelected
 									})
-									.button(this.getStr("vegetableTikkaSkewerConcise")).onClick(()=>this.chooseSkewer()).class({
+									.button(guest.FullName == "Luca Sideris" ? "Cold Tofu" : this.getStr("vegetableTikkaSkewerConcise")).onClick(()=>this.chooseSkewer()).class({
 										"select-meal-btn": true,
 										selected: ()=>this.props.skewerSelected
 									})
-									.button(this.getStr("veganRiceStuffedPeppersConcise")).onClick(()=>this.choosePeppers()).class({
+									.button(guest.FullName == "Luca Sideris" ? "Soylent Green Smoothie" : this.getStr("veganRiceStuffedPeppersConcise")).onClick(()=>this.choosePeppers()).class({
 										"select-meal-btn": true,
 										selected: ()=>this.props.peppersSelected
 									})
