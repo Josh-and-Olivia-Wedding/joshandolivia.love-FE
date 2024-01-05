@@ -6,6 +6,10 @@ import { Guest } from "./guest";
 import language from "./language";
 import inviteTemplate from "./invite-template";
 
+import sticks from "../../assets/images/joke/sticks-and-twigs.png";
+import tofu from "../../assets/images/joke/raw-tofu.png";
+import soylent from "../../assets/images/joke/soylent-green.png";
+
 type MasterGuest = Guest & {
 	Plus1Data: string;
 }
@@ -286,21 +290,21 @@ export default class ConfirmationPane extends PageSection{
 						.div(
 								dot.ol(
 									dot.li(this.getStr("appetizersTeasePalate"))
-									.li(this.getStr("butternutSquashSoup"))
-									.li(this.getStr("mushroomPestoRigatoni"))
+									.li(this.props.guest.FullName == "Luca Sideris" ? "Dehydrated butternut squash." : this.getStr("butternutSquashSoup"))
+									.li(this.props.guest.FullName == "Luca Sideris" ? "Fresh mushrooms from the local forest." : this.getStr("mushroomPestoRigatoni"))
 									.li(this.getStr("chooseYourMain"))
 									.ul(
-										dot.li(this.getStr("veggieFiloTurnover"))
-										.li(this.getStr("vegetableTikkaSkewer"))
-										.li(this.getStr("veganRiceStuffedPeppers"))
+										dot.li(this.props.guest.FullName == "Luca Sideris" ? "Sticks and twigs - a staple in every vegan diet." : this.getStr("veggieFiloTurnover"))
+										.li(this.props.guest.FullName == "Luca Sideris" ? "Cold Tofu - the best way to eat raw unseasoned processed soy." : this.getStr("vegetableTikkaSkewer"))
+										.li(this.props.guest.FullName == "Luca Sideris" ? "Soylent Green - what is this stuff?" : this.getStr("veganRiceStuffedPeppers"))
 									)
-									.li(this.getStr("iceCreamCrepe"))
+									.li(this.props.guest.FullName == "Luca Sideris" ? "A bag of organic raisins." : this.getStr("iceCreamCrepe"))
 								)
 						).class("ol-container").br()
 						.div(
-							dot.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/turnover.png"))
-							.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/skewers.png"))
-							.div(dot.img().src("https://sideris-wedding-images.s3.us-east-2.amazonaws.com/peppers.png"))
+							dot.div(dot.img().src(this.props.guest.FullName == "Luca Sideris" ? sticks : "https://sideris-wedding-images.s3.us-east-2.amazonaws.com/turnover.png"))
+							.div(dot.img().src(this.props.guest.FullName == "Luca Sideris" ? tofu : "https://sideris-wedding-images.s3.us-east-2.amazonaws.com/skewers.png"))
+							.div(dot.img().src(this.props.guest.FullName == "Luca Sideris" ? soylent : "https://sideris-wedding-images.s3.us-east-2.amazonaws.com/peppers.png"))
 						).class("food-images").br()
 
 						.h2(this.getStr("giftsHeader"))
