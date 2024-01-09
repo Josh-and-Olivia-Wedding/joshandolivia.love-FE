@@ -219,6 +219,10 @@ export default class RsvpOptions extends DotComponent{
 
 	ready(){
 		(this.$refs.drinksAlcohol as HTMLInputElement).checked = this.guest.DrinksAlcohol;
+
+		if(this.isLocked){
+			(this.$refs.drinksAlcohol as HTMLInputElement).disabled = true;
+		}
 	}
 
 	style(css: IDotCss): void {
