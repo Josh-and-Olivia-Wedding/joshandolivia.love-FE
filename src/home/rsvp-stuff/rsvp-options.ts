@@ -197,7 +197,7 @@ export default class RsvpOptions extends DotComponent{
 								"hidden2": !!this.guest.IsChild
 							})
 							.type("checkbox")
-							.disabled(this.isLocked)
+							// .disabled(this.isLocked)
 							.onChange((e)=>this.updateAlcohol((e.target as HTMLInputElement).checked))
 							.ref("drinksAlcohol")
 						.label(this.getStr("expectDrinkingAlcohol"))
