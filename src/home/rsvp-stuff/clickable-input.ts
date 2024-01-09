@@ -47,7 +47,6 @@ export default class ClickableInput extends DotComponent{
 	builder(defaultValue: string, isLocked: boolean): IDotElement {
 		this.props.value = defaultValue;
 		this.isLocked = isLocked;
-		console.log("LOCKED?", isLocked);
 
 		return dot.div(
 			dot.input()

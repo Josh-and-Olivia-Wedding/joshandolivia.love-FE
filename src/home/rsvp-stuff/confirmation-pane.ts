@@ -20,6 +20,7 @@ type ModelButton = {
 }
 
 let isLocked = window.location.search.indexOf("ADMIN=true") == -1;
+let lockedExceptionEmails = ["sahar.jahangiri1@gmail.com", "haustyleproductions@gmail.com"];
 
 export default class ConfirmationPane extends PageSection{
 
@@ -161,6 +162,10 @@ export default class ConfirmationPane extends PageSection{
 			let result = await fetch(`https://2fiucgicl8.execute-api.us-east-2.amazonaws.com/get-invite-details?guestId=${guestId}`);
 			let jsonData = await result.json();
 			this.plus1s = JSON.parse(jsonData.Plus1Data) ?? [];
+
+			if(lockedExceptionEmails.indexOf(jsonData.Email) != -1){
+				isLocked = false;
+			}
 			
 			if(!isLocked && jsonData.RsvpStatus != "CONFIRMED"){
 
