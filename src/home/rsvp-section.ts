@@ -119,8 +119,8 @@ export default class RsvpSection extends PageSection{
 		return super.builder(
 			dot.div(
 				dot.div(
-					dot.h1("RSVP")
-					.p("The wedding is booked for January 13 in Toronto. Invitations have been sent out already and are locked in.<br />To view event details, use the personal link in your invitation.")
+					dot.h1("News")
+					.p("The wedding took place January 13 at Fanntasy Farm. We'll be providing a photo and video upload link shortly.<br />Click <a href=\"https://buy.stripe.com/8wM8zL6Ja31I7oQcMM\" target=\"_blank\">here</a> to give a gift!")
 				).class("overlay")
 			).ref("container").class("section-container")
 		);

@@ -38,7 +38,7 @@ export default class MainSection extends PageSection{
 				.div(
 					dot.h1("Josh and Olivia").ref("names")
 					// .p("Special Day").ref("specialDay")
-					.p("Join us in counting down to our special moment.").class("subheading")
+					.p("Thank you for joining us!.").class("subheading")
 					.br()
 					.br()
 					.div(

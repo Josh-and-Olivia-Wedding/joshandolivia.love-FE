@@ -19,8 +19,8 @@ type ModelButton = {
 	value: string;
 }
 
-let isLocked = window.location.search.indexOf("ADMIN=true") == -1;
-let lockedExceptionEmails = ["sahar.jahangiri1@gmail.com", "haustyleproductions@gmail.com"];
+let isLocked = true; //window.location.search.indexOf("ADMIN=true") == -1;
+let lockedExceptionEmails = [];
 
 export default class ConfirmationPane extends PageSection{
 
