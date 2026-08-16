@@ -142,6 +142,40 @@
   background-color: rgba(224, 201, 29, 1);
 }
 
+.gallery-index-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gallery-index-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.gallery-index-link:hover {
+  background-color: rgba(224, 201, 29, 0.35);
+}
+
+.gallery-index-name {
+  font-weight: bold;
+}
+
+.gallery-index-date {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
 @media (max-width: 768px) {
   .photo-caption {
     opacity: 1;

@@ -1,12 +1,37 @@
+import galleries from '../galleries.json';
 import mediaData from '../media-data.json';
 import { CLOUDFRONT_URL, videoFileFormats } from './constants';
 import { IFileMetadata } from './filesystem/i-filesystem';
 import UPLOAD_IDS from './upload-ids';
 
+export const GUEST_GALLERY_ID = 'guest-uploads';
+
+export type GalleryMediaSource = 'legacy' | string;
+
+export interface GalleryRecord {
+	id: string;
+	name: string;
+	date: string;
+	coverThumbnailPath: string | null;
+	mediaSource: GalleryMediaSource;
+	hasPhotographers: boolean;
+}
+
+export interface GalleryMediaRecord {
+	relPath: string;
+	thumbnailPath?: string;
+	compressedPath?: string;
+	path?: string;
+	guestId?: string;
+	size?: number;
+}
+
 export interface GalleryMediaItem extends IFileMetadata {
-	guestId: string;
+	guestId?: string;
 	relPath: string;
 }
+
+const GALLERY_MEDIA_FILES: Record<string, GalleryMediaRecord[]> = {};
 
 const photographerNames = UPLOAD_IDS as Record<string, string>;
 
@@ -19,20 +44,64 @@ export function getPhotographerName(guestId: string): string {
 	return photographerNames[guestId] || 'Unknown';
 }
 
-export function toGalleryMedia(): GalleryMediaItem[] {
+export function listGalleries(): GalleryRecord[] {
+	return galleries as GalleryRecord[];
+}
+
+export function getGallery(galleryId: string): GalleryRecord | undefined {
+	return listGalleries().find((gallery) => gallery.id === galleryId);
+}
+
+function mapMediaRecord(item: GalleryMediaRecord): GalleryMediaItem {
+	const mapped: GalleryMediaItem = {
+		relPath: item.relPath,
+		path: item.path || item.compressedPath || item.thumbnailPath || '',
+		thumbnailPath: item.thumbnailPath || undefined,
+		compressedPath: item.compressedPath || undefined,
+		size: item.size ?? 0,
+		name: item.relPath.split('/').pop() || '',
+		isDirectory: false,
+		lastModified: new Date(),
+	};
+
+	if (item.guestId) {
+		mapped.guestId = item.guestId;
+	}
+
+	return mapped;
+}
+
+function mapLegacyMedia(): GalleryMediaItem[] {
 	return mediaData
 		.filter((item) => item.path || item.compressedPath)
-		.map((item) => ({
-			guestId: item.guestId,
-			relPath: item.relPath,
-			path: item.path || item.compressedPath || '',
-			thumbnailPath: item.thumbnailPath || undefined,
-			compressedPath: item.compressedPath || undefined,
-			size: item.size,
-			name: item.relPath.split('/').pop() || '',
-			isDirectory: false,
-			lastModified: new Date(),
-		}));
+		.map((item) => mapMediaRecord(item));
+}
+
+export function getGalleryMedia(galleryId: string): GalleryMediaItem[] {
+	const gallery = getGallery(galleryId);
+	if (!gallery) {
+		return [];
+	}
+
+	if (gallery.mediaSource === 'legacy') {
+		return mapLegacyMedia();
+	}
+
+	const records = GALLERY_MEDIA_FILES[gallery.mediaSource];
+	if (!records) {
+		return [];
+	}
+
+	return records
+		.filter((item) => item.path || item.compressedPath || item.thumbnailPath)
+		.map((item) => mapMediaRecord(item));
+}
+
+export function galleryAssetUrl(relativePath: string | undefined): string {
+	if (!relativePath) {
+		return '';
+	}
+	return `${CLOUDFRONT_URL}/uploads${relativePath}`;
 }
 
 export function pickRandomCompressedUrls(count: number): string[] {
@@ -46,5 +115,5 @@ export function pickRandomCompressedUrls(count: number): string[] {
 
 	return shuffled
 		.slice(0, count)
-		.map((item) => `${CLOUDFRONT_URL}/uploads${item.compressedPath}`);
+		.map((item) => galleryAssetUrl(item.compressedPath));
 }

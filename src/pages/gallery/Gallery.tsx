@@ -1,170 +1,192 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CLOUDFRONT_URL } from '../../scripts/constants';
+import { Link, useParams } from 'react-router-dom';
 import MediaViewer from '../../components/media-viewer/MediaViewer';
 import {
-  getPhotographerName,
-  isVideoPath,
-  toGalleryMedia,
+	galleryAssetUrl,
+	getGallery,
+	getGalleryMedia,
+	getPhotographerName,
+	isVideoPath,
 } from '../../scripts/gallery-media';
 import './Gallery.css';
 
 type GalleryTab = 'all' | 'videos';
 
 const Gallery: React.FC = () => {
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
-  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
-  const [tab, setTab] = useState<GalleryTab>('all');
-  const [photographerId, setPhotographerId] = useState('');
+	const { galleryId = '' } = useParams<{ galleryId: string }>();
+	const gallery = useMemo(() => getGallery(galleryId), [galleryId]);
 
-  const galleryMedia = useMemo(() => toGalleryMedia(), []);
-  const hasVideos = useMemo(
-    () => galleryMedia.some((media) => isVideoPath(media.relPath)),
-    [galleryMedia]
-  );
+	const [isViewerOpen, setIsViewerOpen] = useState(false);
+	const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
+	const [tab, setTab] = useState<GalleryTab>('all');
+	const [photographerId, setPhotographerId] = useState('');
 
-  const tabMedia = useMemo(() => {
-    if (tab === 'videos') {
-      return galleryMedia.filter((media) => isVideoPath(media.relPath));
-    }
-    return galleryMedia;
-  }, [galleryMedia, tab]);
+	const galleryMedia = useMemo(() => getGalleryMedia(galleryId), [galleryId]);
+	const hasVideos = useMemo(
+		() => galleryMedia.some((media) => isVideoPath(media.relPath)),
+		[galleryMedia]
+	);
 
-  const photographers = useMemo(() => {
-    const ids = Array.from(new Set(tabMedia.map((media) => media.guestId)));
-    return ids
-      .map((id) => ({ id, name: getPhotographerName(id) }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [tabMedia]);
+	const tabMedia = useMemo(() => {
+		if (tab === 'videos') {
+			return galleryMedia.filter((media) => isVideoPath(media.relPath));
+		}
+		return galleryMedia;
+	}, [galleryMedia, tab]);
 
-  const visibleMedia = useMemo(() => {
-    if (!photographerId) return tabMedia;
-    return tabMedia.filter((media) => media.guestId === photographerId);
-  }, [tabMedia, photographerId]);
+	const photographers = useMemo(() => {
+		const ids = Array.from(
+			new Set(tabMedia.map((media) => media.guestId).filter(Boolean) as string[])
+		);
+		return ids
+			.map((id) => ({ id, name: getPhotographerName(id) }))
+			.sort((a, b) => a.name.localeCompare(b.name));
+	}, [tabMedia]);
 
-  const closeViewer = useCallback(() => {
-    setIsViewerOpen(false);
-    document.body.classList.remove('no-scroll');
-  }, []);
+	const visibleMedia = useMemo(() => {
+		if (!photographerId) return tabMedia;
+		return tabMedia.filter((media) => media.guestId === photographerId);
+	}, [tabMedia, photographerId]);
 
-  useEffect(() => {
-    return () => {
-      document.body.classList.remove('no-scroll');
-    };
-  }, []);
+	const closeViewer = useCallback(() => {
+		setIsViewerOpen(false);
+		document.body.classList.remove('no-scroll');
+	}, []);
 
-  const handleMediaClick = (index: number) => {
-    setSelectedMediaIndex(index);
-    setIsViewerOpen(true);
-    document.body.classList.add('no-scroll');
-  };
+	useEffect(() => {
+		return () => {
+			document.body.classList.remove('no-scroll');
+		};
+	}, []);
 
-  const selectNext = useCallback(() => {
-    setSelectedMediaIndex((prev) => (prev + 1) % visibleMedia.length);
-  }, [visibleMedia.length]);
+	const handleMediaClick = (index: number) => {
+		setSelectedMediaIndex(index);
+		setIsViewerOpen(true);
+		document.body.classList.add('no-scroll');
+	};
 
-  const selectPrev = useCallback(() => {
-    setSelectedMediaIndex((prev) => (prev - 1 + visibleMedia.length) % visibleMedia.length);
-  }, [visibleMedia.length]);
+	const selectNext = useCallback(() => {
+		setSelectedMediaIndex((prev) => (prev + 1) % visibleMedia.length);
+	}, [visibleMedia.length]);
 
-  const handleTabChange = (nextTab: GalleryTab) => {
-    setTab(nextTab);
-    setSelectedMediaIndex(0);
-    closeViewer();
-  };
+	const selectPrev = useCallback(() => {
+		setSelectedMediaIndex((prev) => (prev - 1 + visibleMedia.length) % visibleMedia.length);
+	}, [visibleMedia.length]);
 
-  const handlePhotographerChange = (nextId: string) => {
-    setPhotographerId(nextId);
-    setSelectedMediaIndex(0);
-    closeViewer();
-  };
+	const handleTabChange = (nextTab: GalleryTab) => {
+		setTab(nextTab);
+		setSelectedMediaIndex(0);
+		closeViewer();
+	};
 
-  const currentMedia = visibleMedia[selectedMediaIndex];
-  const photographerName = currentMedia ? getPhotographerName(currentMedia.guestId) : '';
-  const hdPhotoUrl = currentMedia
-    ? `${CLOUDFRONT_URL}/uploads${currentMedia.path || currentMedia.compressedPath}`
-    : '';
+	const handlePhotographerChange = (nextId: string) => {
+		setPhotographerId(nextId);
+		setSelectedMediaIndex(0);
+		closeViewer();
+	};
 
-  return (
-    <div className="gallery-container">
-      <Link to="/" className="back-button">← Back to Home</Link>
-      <h1 className="gallery-title">Our Wedding Gallery</h1>
+	if (!gallery) {
+		return (
+			<div className="gallery-container">
+				<Link to="/gallery" className="back-button">← All galleries</Link>
+				<p className="gallery-empty">Gallery not found.</p>
+			</div>
+		);
+	}
 
-      <div className="gallery-toolbar">
-        {hasVideos && (
-          <div className="gallery-tabs">
-            <button
-              className={`gallery-tab${tab === 'all' ? ' active' : ''}`}
-              onClick={() => handleTabChange('all')}
-            >
-              All media
-            </button>
-            <button
-              className={`gallery-tab${tab === 'videos' ? ' active' : ''}`}
-              onClick={() => handleTabChange('videos')}
-            >
-              Videos
-            </button>
-          </div>
-        )}
+	const currentMedia = visibleMedia[selectedMediaIndex];
+	const showPhotographers = gallery.hasPhotographers;
+	const photographerName = showPhotographers && currentMedia?.guestId
+		? getPhotographerName(currentMedia.guestId)
+		: '';
+	const hdPhotoUrl = currentMedia
+		? galleryAssetUrl(currentMedia.path || currentMedia.compressedPath)
+		: '';
 
-        <label className="photographer-filter">
-          <span>Photographer</span>
-          <select
-            value={photographerId}
-            onChange={(event) => handlePhotographerChange(event.target.value)}
-          >
-            <option value="">All photographers</option>
-            {photographers.map((photographer) => (
-              <option key={photographer.id} value={photographer.id}>
-                {photographer.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+	return (
+		<div className="gallery-container">
+			<Link to="/gallery" className="back-button">← All galleries</Link>
+			<h1 className="gallery-title">{gallery.name}</h1>
 
-      {visibleMedia.length === 0 ? (
-        <p className="gallery-empty">No photos match this filter.</p>
-      ) : (
-        <div className="photo-grid">
-          {visibleMedia.map((media, index) => {
-            const isVideo = isVideoPath(media.relPath);
-            const thumbnailUrl = media.thumbnailPath
-              ? `${CLOUDFRONT_URL}/uploads${media.thumbnailPath}`
-              : `${CLOUDFRONT_URL}/uploads${media.compressedPath || media.path}`;
+			<div className="gallery-toolbar">
+				{hasVideos && (
+					<div className="gallery-tabs">
+						<button
+							className={`gallery-tab${tab === 'all' ? ' active' : ''}`}
+							onClick={() => handleTabChange('all')}
+						>
+							All media
+						</button>
+						<button
+							className={`gallery-tab${tab === 'videos' ? ' active' : ''}`}
+							onClick={() => handleTabChange('videos')}
+						>
+							Videos
+						</button>
+					</div>
+				)}
 
-            return (
-              <div
-                key={media.path}
-                className={`photo-item${isVideo ? ' video' : ''}`}
-                onClick={() => handleMediaClick(index)}
-              >
-                <img
-                  src={thumbnailUrl}
-                  alt={media.name}
-                  loading="lazy"
-                />
-                <span className="photo-caption">{getPhotographerName(media.guestId)}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+				{showPhotographers && (
+					<label className="photographer-filter">
+						<span>Photographer</span>
+						<select
+							value={photographerId}
+							onChange={(event) => handlePhotographerChange(event.target.value)}
+						>
+							<option value="">All photographers</option>
+							{photographers.map((photographer) => (
+								<option key={photographer.id} value={photographer.id}>
+									{photographer.name}
+								</option>
+							))}
+						</select>
+					</label>
+				)}
+			</div>
 
-      <MediaViewer
-        isOpen={isViewerOpen}
-        mediaData={visibleMedia}
-        mediaIndex={selectedMediaIndex}
-        photographerName={photographerName}
-        hdPhotoUrl={hdPhotoUrl}
-        showSlideshowToggle
-        onClose={closeViewer}
-        onSwipeLeft={selectNext}
-        onSwipeRight={selectPrev}
-      />
-    </div>
-  );
+			{visibleMedia.length === 0 ? (
+				<p className="gallery-empty">No photos match this filter.</p>
+			) : (
+				<div className="photo-grid">
+					{visibleMedia.map((media, index) => {
+						const isVideo = isVideoPath(media.relPath);
+						const thumbnailUrl = media.thumbnailPath
+							? galleryAssetUrl(media.thumbnailPath)
+							: galleryAssetUrl(media.compressedPath || media.path);
+
+						return (
+							<div
+								key={media.path}
+								className={`photo-item${isVideo ? ' video' : ''}`}
+								onClick={() => handleMediaClick(index)}
+							>
+								<img
+									src={thumbnailUrl}
+									alt={media.name}
+									loading="lazy"
+								/>
+								{showPhotographers && media.guestId && (
+									<span className="photo-caption">{getPhotographerName(media.guestId)}</span>
+								)}
+							</div>
+						);
+					})}
+				</div>
+			)}
+
+			<MediaViewer
+				isOpen={isViewerOpen}
+				mediaData={visibleMedia}
+				mediaIndex={selectedMediaIndex}
+				photographerName={photographerName}
+				hdPhotoUrl={hdPhotoUrl}
+				showSlideshowToggle
+				onClose={closeViewer}
+				onSwipeLeft={selectNext}
+				onSwipeRight={selectPrev}
+			/>
+		</div>
+	);
 };
 
 export default Gallery;

@@ -5,6 +5,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom';
 import Upload from './pages/upload/Upload';
 import Sorter from './pages/sorter/Sorter';
 import Gallery from './pages/gallery/Gallery';
+import GalleryIndex from './pages/gallery/GalleryIndex';
 
 const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
@@ -57,6 +58,9 @@ const App: React.FC = () => {
                 <Sorter />
               } />
               <Route path="/gallery" element={
+                <GalleryIndex />
+              } />
+              <Route path="/gallery/:galleryId" element={
                 <Gallery />
               } />
             </Routes>
