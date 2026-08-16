@@ -24,3 +24,6 @@ yarn-error.log*
 
 # Decomposer breadcrumbs
 .decomposer/
+
+# Gallery ingest staging (Phase 3 CLI)
+.gallery-staging/
