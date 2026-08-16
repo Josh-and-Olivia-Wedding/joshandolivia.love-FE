@@ -31,7 +31,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "ingest-gallery": "node upload-gallery.mjs"
+    "ingest-gallery": "node upload-gallery.mjs",
+    "publish-gallery": "node publish-gallery.mjs"
   },
   "browserslist": {
     "production": [
