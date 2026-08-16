@@ -4,6 +4,7 @@ import {
 	GUEST_GALLERY_ID,
 	galleryAssetUrl,
 	getGallery,
+	getGalleryCoverUrl,
 	getGalleryMedia,
 	isVideoPath,
 	listGalleries,
@@ -54,5 +55,13 @@ describe('gallery-media catalog loaders', () => {
 		for (const url of urls) {
 			expect(url.startsWith(`${CLOUDFRONT_URL}/uploads`)).toBe(true);
 		}
+	});
+
+	test('T8: getGalleryCoverUrl for guest-uploads is a non-empty uploads URL', () => {
+		const gallery = getGallery(GUEST_GALLERY_ID);
+		expect(gallery).toBeDefined();
+		const url = getGalleryCoverUrl(gallery!);
+		expect(url).toBeTruthy();
+		expect(url.startsWith(`${CLOUDFRONT_URL}/uploads`)).toBe(true);
 	});
 });

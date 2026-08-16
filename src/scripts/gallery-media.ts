@@ -104,6 +104,25 @@ export function galleryAssetUrl(relativePath: string | undefined): string {
 	return `${CLOUDFRONT_URL}/uploads${relativePath}`;
 }
 
+export function getGalleryCoverUrl(gallery: GalleryRecord): string {
+	if (gallery.coverThumbnailPath) {
+		return galleryAssetUrl(gallery.coverThumbnailPath);
+	}
+
+	const items = getGalleryMedia(gallery.id);
+	const withThumbnail = items.find((item) => item.thumbnailPath);
+	if (withThumbnail?.thumbnailPath) {
+		return galleryAssetUrl(withThumbnail.thumbnailPath);
+	}
+
+	const withFull = items.find((item) => item.compressedPath || item.path);
+	if (withFull) {
+		return galleryAssetUrl(withFull.compressedPath || withFull.path);
+	}
+
+	return '';
+}
+
 export function pickRandomCompressedUrls(count: number): string[] {
 	const withCompressed = mediaData.filter((item) => item.compressedPath);
 	const shuffled = [...withCompressed];
