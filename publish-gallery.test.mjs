@@ -39,10 +39,25 @@ const EMPTY_MAP = `import type { GalleryMediaRecord } from './gallery-media';
 export const GALLERY_MEDIA_FILES: Record<string, GalleryMediaRecord[]> = {};
 `;
 
+async function writeFakeAwsScript(dir, { exitCode, logPath }) {
+	const scriptPath = path.join(dir, 'fake-aws.mjs');
+	const script = `#!/usr/bin/env node
+import fs from 'node:fs/promises';
+
+const args = process.argv.slice(2);
+await fs.appendFile(${JSON.stringify(logPath)}, \`\${args.join(' ')}\\n\`);
+process.exit(${exitCode});
+`;
+	await fs.writeFile(scriptPath, script);
+	await fs.chmod(scriptPath, 0o755);
+	return scriptPath;
+}
+
 async function makeSandbox() {
 	const root = await fs.mkdtemp(path.join(SANDBOX_ROOT, 'publish-cli-'));
 	const stagingRoot = path.join(root, 'staging');
 	const srcRoot = path.join(root, 'src');
+	const awsLogPath = path.join(root, 'aws-log.txt');
 
 	await fs.mkdir(path.join(stagingRoot, SLUG), { recursive: true });
 	await fs.writeFile(
@@ -57,7 +72,7 @@ async function makeSandbox() {
 	);
 	await fs.writeFile(path.join(srcRoot, 'scripts', 'gallery-media-files.ts'), EMPTY_MAP);
 
-	return { root, stagingRoot, srcRoot };
+	return { root, stagingRoot, srcRoot, awsLogPath };
 }
 
 function runCli(argv, env) {
@@ -82,19 +97,7 @@ function runCli(argv, env) {
 	});
 }
 
-test('CLI1: --skip-s3 writes gallery JSON, upserts catalog, and regenerates map', async () => {
-	const { stagingRoot, srcRoot } = await makeSandbox();
-
-	const result = await runCli(
-		['--slug', SLUG, '--name', NAME, '--date', DATE, '--skip-s3'],
-		{
-			PUBLISH_STAGING_ROOT: stagingRoot,
-			PUBLISH_SRC_ROOT: srcRoot,
-		}
-	);
-
-	assert.equal(result.code, 0, result.stderr);
-
+async function assertCatalogWrites(srcRoot) {
 	const galleryJson = JSON.parse(
 		await fs.readFile(path.join(srcRoot, 'galleries', `${SLUG}.json`), 'utf8')
 	);
@@ -113,26 +116,46 @@ test('CLI1: --skip-s3 writes gallery JSON, upserts catalog, and regenerates map'
 		'utf8'
 	);
 	assert.match(mapSource, /'galleries\/2024-01-13-ceremony\.json': gallery20240113ceremony/);
+}
+
+test('CLI1: --skip-s3 writes gallery JSON, upserts catalog, and regenerates map', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
+
+	const result = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE, '--skip-s3'],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+
+	assert.equal(result.code, 0, result.stderr);
+	await assertCatalogWrites(srcRoot);
+	await assert.rejects(() => fs.stat(awsLogPath));
 });
 
-test('CLI2: without --skip-s3 exits non-zero and does not write dest files', async () => {
-	const { stagingRoot, srcRoot } = await makeSandbox();
+test('CLI2: failed aws sync exits non-zero and does not write dest files', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
 	const catalogBefore = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
 	const mapBefore = await fs.readFile(
 		path.join(srcRoot, 'scripts', 'gallery-media-files.ts'),
 		'utf8'
 	);
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 1, logPath: awsLogPath });
 
 	const result = await runCli(
 		['--slug', SLUG, '--name', NAME, '--date', DATE],
 		{
 			PUBLISH_STAGING_ROOT: stagingRoot,
 			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
 		}
 	);
 
 	assert.notEqual(result.code, 0);
-	assert.match(result.stderr, /S3 sync is not implemented/);
+	assert.match(result.stderr, /S3 sync failed/);
 
 	const catalogAfter = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
 	const mapAfter = await fs.readFile(
@@ -141,19 +164,24 @@ test('CLI2: without --skip-s3 exits non-zero and does not write dest files', asy
 	);
 	assert.equal(catalogAfter, catalogBefore);
 	assert.equal(mapAfter, mapBefore);
-
 	await assert.rejects(() => fs.stat(path.join(srcRoot, 'galleries', `${SLUG}.json`)));
+
+	const awsLog = await fs.readFile(awsLogPath, 'utf8');
+	assert.match(awsLog, /s3 sync/);
+	assert.match(awsLog, new RegExp(path.join(stagingRoot, SLUG).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
 test('CLI3: reserved slug and missing staging do not write dest files', async () => {
-	const { stagingRoot, srcRoot } = await makeSandbox();
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
 	const catalogBefore = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
 
 	const reserved = await runCli(
 		['--slug', 'guest-uploads', '--name', NAME, '--date', DATE, '--skip-s3'],
 		{
 			PUBLISH_STAGING_ROOT: stagingRoot,
 			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
 		}
 	);
 	assert.notEqual(reserved.code, 0);
@@ -164,6 +192,7 @@ test('CLI3: reserved slug and missing staging do not write dest files', async ()
 		{
 			PUBLISH_STAGING_ROOT: stagingRoot,
 			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
 		}
 	);
 	assert.notEqual(missingStaging.code, 0);
@@ -171,4 +200,32 @@ test('CLI3: reserved slug and missing staging do not write dest files', async ()
 
 	const catalogAfter = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
 	assert.equal(catalogAfter, catalogBefore);
+	await assert.rejects(() => fs.stat(awsLogPath));
+});
+
+test('CLI4: default path syncs via aws then writes catalog and map', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
+
+	const result = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+
+	assert.equal(result.code, 0, result.stderr);
+	await assertCatalogWrites(srcRoot);
+
+	const awsLog = await fs.readFile(awsLogPath, 'utf8');
+	assert.match(awsLog, /s3 sync/);
+	assert.match(awsLog, new RegExp(path.join(stagingRoot, SLUG).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+	assert.match(awsLog, /s3:\/\/sideris-wedding-images\/uploads\/galleries\/2024-01-13-ceremony\//);
+	assert.match(awsLog, /--profile personal/);
+	assert.match(awsLog, /--region us-east-2/);
+	assert.match(awsLog, /--exclude media\.json/);
+	assert.doesNotMatch(awsLog, /--delete/);
+	assert.match(result.stdout, /S3 destination: s3:\/\/sideris-wedding-images\/uploads\/galleries\/2024-01-13-ceremony\//);
 });

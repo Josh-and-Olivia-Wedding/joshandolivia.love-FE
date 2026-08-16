@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { planPublish, serializeJson } from './publish-gallery-lib.mjs';
 
+const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const BOOLEAN_FLAGS = new Set(['help', 'h', 'skip-s3']);
+const S3_BUCKET = 'sideris-wedding-images';
+const S3_REGION = 'us-east-2';
+const S3_PROFILE = 'personal';
 
 function printHelp() {
 	console.log(`Usage:
-  node publish-gallery.mjs --slug <slug> --name <gallery name> --date YYYY-MM-DD --skip-s3
+  node publish-gallery.mjs --slug <slug> --name <gallery name> --date YYYY-MM-DD [--skip-s3]
 
-Writes gallery catalog JSON and the CRA media map from .gallery-staging/{slug}/.
-This command does not ingest or resize images. S3 sync is not implemented yet.
-Videos are unsupported.
+Syncs staging to S3, then writes gallery catalog JSON and the CRA media map from .gallery-staging/{slug}/.
+Use --skip-s3 to write catalog files only without calling AWS.
+This command does not ingest or resize images. Videos are unsupported.
 `);
 }
 
@@ -61,9 +67,40 @@ function resolvePaths() {
 	};
 }
 
+function resolveAwsBin() {
+	return process.env.PUBLISH_AWS_BIN ?? 'aws';
+}
+
 async function readExistingCatalog(catalogPath) {
 	const raw = await fs.readFile(catalogPath, 'utf8');
 	return JSON.parse(raw);
+}
+
+async function syncStagingToS3({ stagingDir, slug, awsBin }) {
+	const source = path.resolve(stagingDir);
+	const destination = `s3://${S3_BUCKET}/uploads/galleries/${slug}/`;
+	const { stderr } = await execFileAsync(
+		awsBin,
+		[
+			's3',
+			'sync',
+			source,
+			destination,
+			'--profile',
+			S3_PROFILE,
+			'--region',
+			S3_REGION,
+			'--exclude',
+			'media.json',
+		],
+		{ maxBuffer: 10 * 1024 * 1024 }
+	);
+
+	if (stderr) {
+		process.stderr.write(stderr);
+	}
+
+	return destination;
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -88,11 +125,6 @@ async function main(argv = process.argv.slice(2)) {
 	if (!slug || !name || !date) {
 		console.error('Missing required arguments: --slug, --name, --date');
 		printHelp();
-		process.exit(1);
-	}
-
-	if (!args.skipS3) {
-		console.error('S3 sync is not implemented yet. Re-run with --skip-s3 to write catalog files only.');
 		process.exit(1);
 	}
 
@@ -121,6 +153,26 @@ async function main(argv = process.argv.slice(2)) {
 		process.exit(1);
 	}
 
+	let s3Destination;
+	if (!args.skipS3) {
+		const stagingDir = path.join(paths.stagingRoot, slug);
+		try {
+			s3Destination = await syncStagingToS3({
+				stagingDir,
+				slug,
+				awsBin: resolveAwsBin(),
+			});
+		} catch (error) {
+			console.error('S3 sync failed.');
+			if (error.stderr) {
+				process.stderr.write(error.stderr);
+			} else {
+				console.error(error.message);
+			}
+			process.exit(1);
+		}
+	}
+
 	const galleryJsonPath = paths.galleryJsonPath(slug);
 	await fs.mkdir(path.dirname(galleryJsonPath), { recursive: true });
 	await fs.writeFile(galleryJsonPath, serializeJson(plan.media));
@@ -128,6 +180,9 @@ async function main(argv = process.argv.slice(2)) {
 	await fs.writeFile(paths.mapPath, plan.mediaFilesSource);
 
 	console.log(`Gallery slug: ${slug}`);
+	if (s3Destination) {
+		console.log(`S3 destination: ${s3Destination}`);
+	}
 	console.log(`Gallery JSON: ${galleryJsonPath}`);
 	console.log(`Catalog: ${paths.catalogPath}`);
 	console.log(`Media map: ${paths.mapPath}`);
