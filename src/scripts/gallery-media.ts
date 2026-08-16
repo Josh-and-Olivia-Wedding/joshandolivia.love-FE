@@ -1,6 +1,7 @@
 import galleries from '../galleries.json';
 import mediaData from '../media-data.json';
 import { CLOUDFRONT_URL, videoFileFormats } from './constants';
+import { GALLERY_MEDIA_FILES } from './gallery-media-files';
 import { IFileMetadata } from './filesystem/i-filesystem';
 import UPLOAD_IDS from './upload-ids';
 
@@ -30,8 +31,6 @@ export interface GalleryMediaItem extends IFileMetadata {
 	guestId?: string;
 	relPath: string;
 }
-
-const GALLERY_MEDIA_FILES: Record<string, GalleryMediaRecord[]> = {};
 
 const photographerNames = UPLOAD_IDS as Record<string, string>;
 

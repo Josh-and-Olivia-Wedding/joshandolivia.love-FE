@@ -14,10 +14,10 @@ import {
 describe('gallery-media catalog loaders', () => {
 	test('T1: listGalleries returns guest-uploads with photographers', () => {
 		const galleries = listGalleries();
-		expect(galleries).toHaveLength(1);
-		expect(galleries[0].id).toBe(GUEST_GALLERY_ID);
-		expect(galleries[0].hasPhotographers).toBe(true);
-		expect(galleries[0].mediaSource).toBe('legacy');
+		const guest = galleries.find((gallery) => gallery.id === GUEST_GALLERY_ID);
+		expect(guest).toBeDefined();
+		expect(guest!.hasPhotographers).toBe(true);
+		expect(guest!.mediaSource).toBe('legacy');
 	});
 
 	test('T2: getGalleryMedia guest-uploads length matches filtered media-data.json', () => {
