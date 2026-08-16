@@ -4,6 +4,7 @@ import Home from './pages/home/Home';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import Upload from './pages/upload/Upload';
 import Sorter from './pages/sorter/Sorter';
+import Gallery from './pages/gallery/Gallery';
 
 const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
@@ -54,6 +55,9 @@ const App: React.FC = () => {
               } />
               <Route path="/sorter" element={
                 <Sorter />
+              } />
+              <Route path="/gallery" element={
+                <Gallery />
               } />
             </Routes>
           </HashRouter>
