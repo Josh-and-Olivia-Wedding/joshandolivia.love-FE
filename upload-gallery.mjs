@@ -20,26 +20,29 @@ import {
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const STAGING_ROOT = path.join(__dirname, '.gallery-staging');
 const SKIP_DIRS = new Set(['.gallery-staging', 'node_modules', '.git']);
+const BOOLEAN_FLAGS = new Set(['help', 'h', 'dry-run']);
 
 function printHelp() {
 	console.log(`Usage:
-  node upload-gallery.mjs --folder <dir> --name <gallery name> --date YYYY-MM-DD
+  node upload-gallery.mjs --folder <dir> --name <gallery name> --date YYYY-MM-DD [--dry-run]
 
 Stages webp thumbnails and compressed images, plus transcoded mp4 videos with poster
-thumbnails, under .gallery-staging/{slug}/.
+thumbnails, under .gallery-staging/{slug}/ (or INGEST_STAGING_ROOT).
 Images use sharp (100x100 thumb, 2560 compressed webp, quality 85).
 Videos use ffmpeg (H.264 AAC mp4, max edge 1920, CRF 23) and a 100x100 webp poster.
 Set INGEST_FFMPEG_BIN to override the ffmpeg executable path.
+Set INGEST_STAGING_ROOT to override the staging directory root.
+Use --dry-run to scan and print what would be processed without writing files.
 This command does not upload to S3 or update src/galleries.json.
 Missing ffmpeg fails individual videos but images still process.
 Re-running overwrites the staging directory for that slug.
+After ingest, run publish-gallery.mjs to sync and update the catalog.
 `);
 }
 
 function parseArgs(argv) {
-	const args = {};
+	const args = { dryRun: false };
 	for (let i = 0; i < argv.length; i += 1) {
 		const arg = argv[i];
 		if (arg === '--help' || arg === '-h') {
@@ -50,6 +53,12 @@ function parseArgs(argv) {
 			continue;
 		}
 		const key = arg.slice(2);
+		if (BOOLEAN_FLAGS.has(key)) {
+			if (key === 'dry-run') {
+				args.dryRun = true;
+			}
+			continue;
+		}
 		const value = argv[i + 1];
 		if (!value || value.startsWith('--')) {
 			throw new Error(`Missing value for --${key}`);
@@ -58,6 +67,10 @@ function parseArgs(argv) {
 		i += 1;
 	}
 	return args;
+}
+
+function resolveStagingRoot() {
+	return process.env.INGEST_STAGING_ROOT ?? path.join(__dirname, '.gallery-staging');
 }
 
 function resolveFfmpegBin() {
@@ -83,6 +96,37 @@ async function walkFiles(rootDir, currentDir = rootDir, files = []) {
 		}
 	}
 	return files;
+}
+
+function classifyFile(relativePath) {
+	const ext = getFileExtension(relativePath);
+	if (isProcessableImage(ext)) {
+		return 'image';
+	}
+	if (isProcessableVideo(ext)) {
+		return 'video';
+	}
+	if (isSkippableVideo(ext)) {
+		return 'unsupported-video';
+	}
+	return 'unsupported';
+}
+
+async function warnIfFfmpegMissing(files, ffmpegBin) {
+	const hasVideo = files.some((file) => classifyFile(file.relativePath) === 'video');
+	if (!hasVideo) {
+		return;
+	}
+
+	try {
+		await execFileAsync(ffmpegBin, ['-version'], { maxBuffer: 1024 * 1024 });
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			console.error(
+				'ffmpeg not found (set INGEST_FFMPEG_BIN). Videos will fail; images still process.'
+			);
+		}
+	}
 }
 
 async function removeIfExists(filePath) {
@@ -133,7 +177,7 @@ async function transcodeVideo(filePath, outputPath, ffmpegBin) {
 	try {
 		await runFfmpeg(ffmpegBin, withAudioArgs);
 		return;
-	} catch (error) {
+	} catch {
 		const videoOnlyArgs = [
 			'-y',
 			'-i',
@@ -285,20 +329,66 @@ async function main() {
 		process.exit(1);
 	}
 
-	const stagingDir = path.join(STAGING_ROOT, slug);
+	const stagingRoot = resolveStagingRoot();
+	const stagingDir = path.join(stagingRoot, slug);
 	const ffmpegBin = resolveFfmpegBin();
+	const files = await walkFiles(folderPath);
+
+	let processed = 0;
+	let skipped = 0;
+
+	for (const file of files) {
+		const kind = classifyFile(file.relativePath);
+		if (kind === 'image') {
+			console.log(`Would process image: ${file.relativePath}`);
+			processed += 1;
+			continue;
+		}
+		if (kind === 'video') {
+			console.log(`Would process video: ${file.relativePath}`);
+			processed += 1;
+			continue;
+		}
+		if (kind === 'unsupported-video') {
+			console.log(`Would skip unsupported video: ${file.relativePath}`);
+			skipped += 1;
+			continue;
+		}
+		console.log(`Would skip unsupported file: ${file.relativePath}`);
+		skipped += 1;
+	}
+
+	if (args.dryRun) {
+		if (files.some((file) => classifyFile(file.relativePath) === 'video')) {
+			console.error(
+				'A real run requires ffmpeg (set INGEST_FFMPEG_BIN).'
+			);
+		}
+
+		if (processed === 0) {
+			console.error('No media were processed.');
+			process.exit(1);
+		}
+
+		console.log(`Gallery slug: ${slug}`);
+		console.log(`Processed: ${processed}`);
+		console.log(`Skipped: ${skipped}`);
+		console.log(`Staging path: ${stagingDir}`);
+		return;
+	}
+
+	await warnIfFfmpegMissing(files, ffmpegBin);
 
 	await fs.rm(stagingDir, { recursive: true, force: true });
 	await fs.mkdir(path.join(stagingDir, 'thumbnails'), { recursive: true });
 	await fs.mkdir(path.join(stagingDir, 'compressed'), { recursive: true });
 	await fs.mkdir(path.join(stagingDir, 'videos'), { recursive: true });
 
-	const files = await walkFiles(folderPath);
 	const usedStems = new Set();
 	const records = [];
-	let processed = 0;
-	let skipped = 0;
 	let failed = 0;
+	processed = 0;
+	skipped = 0;
 
 	for (const file of files) {
 		const ext = getFileExtension(file.relativePath);

@@ -229,3 +229,85 @@ test('CLI4: default path syncs via aws then writes catalog and map', async () =>
 	assert.doesNotMatch(awsLog, /--delete/);
 	assert.match(result.stdout, /S3 destination: s3:\/\/sideris-wedding-images\/uploads\/galleries\/2024-01-13-ceremony\//);
 });
+
+test('H3: --dry-run prints plan without aws or catalog writes', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
+	const catalogBefore = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
+	const mapBefore = await fs.readFile(
+		path.join(srcRoot, 'scripts', 'gallery-media-files.ts'),
+		'utf8'
+	);
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
+
+	const result = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE, '--dry-run'],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+
+	assert.equal(result.code, 0, result.stderr);
+	assert.match(result.stdout, /Gallery slug: 2024-01-13-ceremony/);
+	assert.match(result.stdout, /Media count: 1/);
+	assert.match(result.stdout, /S3 --delete: no/);
+
+	const catalogAfter = await fs.readFile(path.join(srcRoot, 'galleries.json'), 'utf8');
+	const mapAfter = await fs.readFile(
+		path.join(srcRoot, 'scripts', 'gallery-media-files.ts'),
+		'utf8'
+	);
+	assert.equal(catalogAfter, catalogBefore);
+	assert.equal(mapAfter, mapBefore);
+	await assert.rejects(() => fs.stat(path.join(srcRoot, 'galleries', `${SLUG}.json`)));
+	await assert.rejects(() => fs.stat(awsLogPath));
+});
+
+test('H4: --delete passes --delete to aws sync', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
+
+	const withDelete = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE, '--delete'],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+	assert.equal(withDelete.code, 0, withDelete.stderr);
+	const deleteLog = await fs.readFile(awsLogPath, 'utf8');
+	assert.match(deleteLog, /--delete/);
+
+	await fs.rm(awsLogPath, { force: true });
+	const withoutDelete = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+	assert.equal(withoutDelete.code, 0, withoutDelete.stderr);
+	const defaultLog = await fs.readFile(awsLogPath, 'utf8');
+	assert.doesNotMatch(defaultLog, /--delete/);
+});
+
+test('H5: --skip-s3 and --delete together is rejected', async () => {
+	const { stagingRoot, srcRoot, awsLogPath, root } = await makeSandbox();
+	const fakeAws = await writeFakeAwsScript(root, { exitCode: 0, logPath: awsLogPath });
+
+	const result = await runCli(
+		['--slug', SLUG, '--name', NAME, '--date', DATE, '--skip-s3', '--delete'],
+		{
+			PUBLISH_STAGING_ROOT: stagingRoot,
+			PUBLISH_SRC_ROOT: srcRoot,
+			PUBLISH_AWS_BIN: fakeAws,
+		}
+	);
+
+	assert.notEqual(result.code, 0);
+	assert.match(result.stderr, /--delete/);
+	await assert.rejects(() => fs.stat(awsLogPath));
+});
