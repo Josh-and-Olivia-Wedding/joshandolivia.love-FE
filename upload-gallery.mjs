@@ -1,18 +1,24 @@
 #!/usr/bin/env node
 
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import {
 	getFileExtension,
 	isProcessableImage,
+	isProcessableVideo,
 	isSkippableVideo,
 	sanitizeFileStem,
 	slugifyGalleryId,
 	toGalleryMediaRecord,
+	toGalleryVideoRecord,
 } from './upload-gallery-lib.mjs';
 
+const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STAGING_ROOT = path.join(__dirname, '.gallery-staging');
 const SKIP_DIRS = new Set(['.gallery-staging', 'node_modules', '.git']);
@@ -21,9 +27,14 @@ function printHelp() {
 	console.log(`Usage:
   node upload-gallery.mjs --folder <dir> --name <gallery name> --date YYYY-MM-DD
 
-Stages webp thumbnails and compressed images under .gallery-staging/{slug}/.
-This command does not upload to S3 or update src/galleries.json (Phase 4).
-Videos are skipped. Re-running overwrites the staging directory for that slug.
+Stages webp thumbnails and compressed images, plus transcoded mp4 videos with poster
+thumbnails, under .gallery-staging/{slug}/.
+Images use sharp (100x100 thumb, 2560 compressed webp, quality 85).
+Videos use ffmpeg (H.264 AAC mp4, max edge 1920, CRF 23) and a 100x100 webp poster.
+Set INGEST_FFMPEG_BIN to override the ffmpeg executable path.
+This command does not upload to S3 or update src/galleries.json.
+Missing ffmpeg fails individual videos but images still process.
+Re-running overwrites the staging directory for that slug.
 `);
 }
 
@@ -49,6 +60,10 @@ function parseArgs(argv) {
 	return args;
 }
 
+function resolveFfmpegBin() {
+	return process.env.INGEST_FFMPEG_BIN ?? 'ffmpeg';
+}
+
 async function walkFiles(rootDir, currentDir = rootDir, files = []) {
 	const entries = await fs.readdir(currentDir, { withFileTypes: true });
 	for (const entry of entries) {
@@ -70,6 +85,109 @@ async function walkFiles(rootDir, currentDir = rootDir, files = []) {
 	return files;
 }
 
+async function removeIfExists(filePath) {
+	try {
+		await fs.rm(filePath, { force: true });
+	} catch {
+		// ignore
+	}
+}
+
+async function runFfmpeg(ffmpegBin, args) {
+	try {
+		await execFileAsync(ffmpegBin, args, { maxBuffer: 20 * 1024 * 1024 });
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			throw new Error('ffmpeg not found');
+		}
+		const stderr = error.stderr ? String(error.stderr) : error.message;
+		throw new Error(stderr.trim() || 'ffmpeg failed');
+	}
+}
+
+async function transcodeVideo(filePath, outputPath, ffmpegBin) {
+	const scaleFilter =
+		"scale='min(1920,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease,scale=trunc(iw/2)*2:trunc(ih/2)*2";
+
+	const withAudioArgs = [
+		'-y',
+		'-i',
+		filePath,
+		'-vf',
+		scaleFilter,
+		'-c:v',
+		'libx264',
+		'-pix_fmt',
+		'yuv420p',
+		'-preset',
+		'medium',
+		'-crf',
+		'23',
+		'-c:a',
+		'aac',
+		'-movflags',
+		'+faststart',
+		outputPath,
+	];
+
+	try {
+		await runFfmpeg(ffmpegBin, withAudioArgs);
+		return;
+	} catch (error) {
+		const videoOnlyArgs = [
+			'-y',
+			'-i',
+			filePath,
+			'-vf',
+			scaleFilter,
+			'-c:v',
+			'libx264',
+			'-pix_fmt',
+			'yuv420p',
+			'-preset',
+			'medium',
+			'-crf',
+			'23',
+			'-an',
+			'-movflags',
+			'+faststart',
+			outputPath,
+		];
+		await runFfmpeg(ffmpegBin, videoOnlyArgs);
+	}
+}
+
+async function extractPosterFrame(filePath, posterPath, ffmpegBin) {
+	const seekTimes = ['0', '1'];
+	let lastError;
+
+	for (const seek of seekTimes) {
+		await removeIfExists(posterPath);
+		try {
+			await runFfmpeg(ffmpegBin, [
+				'-y',
+				'-ss',
+				seek,
+				'-i',
+				filePath,
+				'-frames:v',
+				'1',
+				'-update',
+				'1',
+				'-q:v',
+				'2',
+				posterPath,
+			]);
+			await fs.stat(posterPath);
+			return;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+
+	throw lastError ?? new Error('ffmpeg poster extraction failed');
+}
+
 async function processImage(filePath, stem, stagingDir) {
 	const thumbBuffer = await sharp(filePath)
 		.rotate()
@@ -87,6 +205,38 @@ async function processImage(filePath, stem, stagingDir) {
 	await fs.writeFile(path.join(stagingDir, 'compressed', `${stem}.webp`), compressedBuffer);
 
 	return compressedBuffer.length;
+}
+
+async function processVideo(filePath, stem, stagingDir, ffmpegBin) {
+	const outputPath = path.join(stagingDir, 'videos', `${stem}.mp4`);
+	const posterPath = path.join(stagingDir, 'thumbnails', `${stem}.webp`);
+	const tempPosterPath = path.join(
+		os.tmpdir(),
+		`upload-gallery-${process.pid}-${stem}-${Date.now()}.png`
+	);
+
+	await removeIfExists(outputPath);
+	await removeIfExists(posterPath);
+
+	try {
+		await transcodeVideo(filePath, outputPath, ffmpegBin);
+		await extractPosterFrame(outputPath, tempPosterPath, ffmpegBin);
+
+		const posterBuffer = await sharp(tempPosterPath)
+			.resize({ width: 100, height: 100, fit: 'inside', withoutEnlargement: true })
+			.webp({ quality: 85 })
+			.toBuffer();
+
+		await fs.writeFile(posterPath, posterBuffer);
+		const stats = await fs.stat(outputPath);
+		return stats.size;
+	} catch (error) {
+		await removeIfExists(outputPath);
+		await removeIfExists(posterPath);
+		throw error;
+	} finally {
+		await removeIfExists(tempPosterPath);
+	}
 }
 
 async function main() {
@@ -136,9 +286,12 @@ async function main() {
 	}
 
 	const stagingDir = path.join(STAGING_ROOT, slug);
+	const ffmpegBin = resolveFfmpegBin();
+
 	await fs.rm(stagingDir, { recursive: true, force: true });
 	await fs.mkdir(path.join(stagingDir, 'thumbnails'), { recursive: true });
 	await fs.mkdir(path.join(stagingDir, 'compressed'), { recursive: true });
+	await fs.mkdir(path.join(stagingDir, 'videos'), { recursive: true });
 
 	const files = await walkFiles(folderPath);
 	const usedStems = new Set();
@@ -149,30 +302,50 @@ async function main() {
 
 	for (const file of files) {
 		const ext = getFileExtension(file.relativePath);
-		if (isSkippableVideo(ext)) {
-			console.log(`Skipping video: ${file.relativePath}`);
-			skipped += 1;
+
+		if (isProcessableImage(ext)) {
+			const stem = sanitizeFileStem(file.relativePath, usedStems);
+			try {
+				const compressedSize = await processImage(file.absolutePath, stem, stagingDir);
+				records.push(toGalleryMediaRecord({ slug, stem, compressedSize }));
+				processed += 1;
+			} catch (error) {
+				console.error(`Failed to process ${file.relativePath}: ${error.message}`);
+				failed += 1;
+			}
 			continue;
 		}
-		if (!isProcessableImage(ext)) {
-			console.log(`Skipping unsupported file: ${file.relativePath}`);
+
+		if (isProcessableVideo(ext)) {
+			const stem = sanitizeFileStem(file.relativePath, usedStems);
+			try {
+				const videoSize = await processVideo(
+					file.absolutePath,
+					stem,
+					stagingDir,
+					ffmpegBin
+				);
+				records.push(toGalleryVideoRecord({ slug, stem, videoSize }));
+				processed += 1;
+			} catch (error) {
+				console.error(`Failed to process ${file.relativePath}: ${error.message}`);
+				failed += 1;
+			}
+			continue;
+		}
+
+		if (isSkippableVideo(ext)) {
+			console.log(`Skipping unsupported video: ${file.relativePath}`);
 			skipped += 1;
 			continue;
 		}
 
-		const stem = sanitizeFileStem(file.relativePath, usedStems);
-		try {
-			const compressedSize = await processImage(file.absolutePath, stem, stagingDir);
-			records.push(toGalleryMediaRecord({ slug, stem, compressedSize }));
-			processed += 1;
-		} catch (error) {
-			console.error(`Failed to process ${file.relativePath}: ${error.message}`);
-			failed += 1;
-		}
+		console.log(`Skipping unsupported file: ${file.relativePath}`);
+		skipped += 1;
 	}
 
 	if (processed === 0) {
-		console.error('No images were processed.');
+		console.error('No media were processed.');
 		process.exit(1);
 	}
 

@@ -21,7 +21,7 @@ function printHelp() {
 
 Syncs staging to S3, then writes gallery catalog JSON and the CRA media map from .gallery-staging/{slug}/.
 Use --skip-s3 to write catalog files only without calling AWS.
-This command does not ingest or resize images. Videos are unsupported.
+This command does not ingest or resize media.
 `);
 }
 

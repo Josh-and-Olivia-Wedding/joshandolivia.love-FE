@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { GUEST_GALLERY_ID, isValidGalleryDate } from './upload-gallery-lib.mjs';
+import { GUEST_GALLERY_ID, getFileExtension, isValidGalleryDate } from './upload-gallery-lib.mjs';
 
 const MEDIA_SOURCE_PREFIX = 'galleries/';
 const MEDIA_SOURCE_SUFFIX = '.json';
@@ -29,6 +29,11 @@ function assertNonEmptyName(name) {
 	}
 }
 
+function isVideoRelPath(relPath) {
+	const ext = getFileExtension(relPath);
+	return ['mp4', 'mov', 'm4v', 'webm', 'avi', 'mkv'].includes(ext);
+}
+
 function validateMediaRecord(item, slug, index) {
 	if (!item || typeof item !== 'object') {
 		throw new Error(`media.json item at index ${index} must be an object.`);
@@ -40,6 +45,7 @@ function validateMediaRecord(item, slug, index) {
 
 	const hasThumbnail = Boolean(item.thumbnailPath);
 	const hasCompressed = Boolean(item.compressedPath);
+	const hasPath = Boolean(item.path);
 	if (!hasThumbnail && !hasCompressed) {
 		throw new Error(
 			`media.json item at index ${index} must include thumbnailPath or compressedPath.`
@@ -56,6 +62,22 @@ function validateMediaRecord(item, slug, index) {
 		throw new Error(
 			`media.json item at index ${index} compressedPath must start with "${expectedPrefix}".`
 		);
+	}
+	if (hasPath && !item.path.startsWith(expectedPrefix)) {
+		throw new Error(
+			`media.json item at index ${index} path must start with "${expectedPrefix}".`
+		);
+	}
+	if (isVideoRelPath(item.relPath)) {
+		if (!hasPath) {
+			throw new Error(`media.json item at index ${index} video must include path.`);
+		}
+		const expectedVideoPrefix = `/galleries/${slug}/videos/`;
+		if (!item.path.startsWith(expectedVideoPrefix)) {
+			throw new Error(
+				`media.json item at index ${index} video path must start with "${expectedVideoPrefix}".`
+			);
+		}
 	}
 }
 

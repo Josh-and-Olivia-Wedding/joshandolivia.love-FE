@@ -10,6 +10,7 @@ import {
 	loadStagingMedia,
 	planPublish,
 	upsertGalleryCatalog,
+	validateStagingMedia,
 } from './publish-gallery-lib.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -219,4 +220,48 @@ test('P5: missing or empty staging throws without writing catalog', async () => 
 
 	const after = await fs.readFile(dummyPath, 'utf8');
 	assert.equal(after, dummyContents);
+});
+
+test('P6: validateStagingMedia accepts video records and rejects bad video paths', () => {
+	const videoMedia = [
+		{
+			relPath: 'clip.mp4',
+			thumbnailPath: `/galleries/${SLUG}/thumbnails/clip.webp`,
+			path: `/galleries/${SLUG}/videos/clip.mp4`,
+			size: 99,
+		},
+	];
+
+	const validated = validateStagingMedia(videoMedia, SLUG);
+	assert.equal(validated.length, 1);
+	assert.equal('compressedPath' in validated[0], false);
+
+	assert.throws(
+		() =>
+			validateStagingMedia(
+				[
+					{
+						relPath: 'clip.mp4',
+						thumbnailPath: `/galleries/${SLUG}/thumbnails/clip.webp`,
+						path: '/galleries/other/videos/clip.mp4',
+					},
+				],
+				SLUG
+			),
+		/path must start with/
+	);
+
+	assert.throws(
+		() =>
+			validateStagingMedia(
+				[
+					{
+						relPath: 'clip.mp4',
+						thumbnailPath: `/galleries/${SLUG}/thumbnails/clip.webp`,
+					},
+				],
+				SLUG
+			),
+		/video must include path/
+	);
 });

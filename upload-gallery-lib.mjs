@@ -13,11 +13,14 @@ const IMAGE_EXTENSIONS = new Set([
 	'tiff',
 ]);
 
-const VIDEO_EXTENSIONS = new Set([
+const PROCESSABLE_VIDEO_EXTENSIONS = new Set([
 	'mp4',
 	'mov',
 	'm4v',
 	'webm',
+]);
+
+const UNSUPPORTED_VIDEO_EXTENSIONS = new Set([
 	'avi',
 	'mkv',
 ]);
@@ -67,8 +70,12 @@ export function isProcessableImage(ext) {
 	return IMAGE_EXTENSIONS.has(ext);
 }
 
+export function isProcessableVideo(ext) {
+	return PROCESSABLE_VIDEO_EXTENSIONS.has(ext);
+}
+
 export function isSkippableVideo(ext) {
-	return VIDEO_EXTENSIONS.has(ext);
+	return UNSUPPORTED_VIDEO_EXTENSIONS.has(ext);
 }
 
 export function sanitizeFileStem(relativePath, usedStems) {
@@ -102,5 +109,16 @@ export function toGalleryMediaRecord({ slug, stem, compressedSize }) {
 		thumbnailPath: `/galleries/${slug}/thumbnails/${fileName}`,
 		compressedPath: `/galleries/${slug}/compressed/${fileName}`,
 		size: compressedSize ?? 0,
+	};
+}
+
+export function toGalleryVideoRecord({ slug, stem, videoSize }) {
+	const fileName = `${stem}.mp4`;
+	const posterName = `${stem}.webp`;
+	return {
+		relPath: fileName,
+		thumbnailPath: `/galleries/${slug}/thumbnails/${posterName}`,
+		path: `/galleries/${slug}/videos/${fileName}`,
+		size: videoSize ?? 0,
 	};
 }
