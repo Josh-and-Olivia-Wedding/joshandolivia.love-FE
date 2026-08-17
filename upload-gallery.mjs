@@ -233,13 +233,13 @@ async function extractPosterFrame(filePath, posterPath, ffmpegBin) {
 }
 
 async function processImage(filePath, stem, stagingDir) {
-	const thumbBuffer = await sharp(filePath)
+	const thumbBuffer = await sharp(filePath, { failOn: 'none' })
 		.rotate()
 		.resize({ width: 100, height: 100, fit: 'inside', withoutEnlargement: true })
 		.webp({ quality: 85 })
 		.toBuffer();
 
-	const compressedBuffer = await sharp(filePath)
+	const compressedBuffer = await sharp(filePath, { failOn: 'none' })
 		.rotate()
 		.resize({ width: 2560, height: 2560, fit: 'inside', withoutEnlargement: true })
 		.webp({ quality: 85 })

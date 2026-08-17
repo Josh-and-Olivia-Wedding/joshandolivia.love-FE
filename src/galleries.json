@@ -6,5 +6,29 @@
 		"coverThumbnailPath": null,
 		"mediaSource": "legacy",
 		"hasPhotographers": true
+	},
+	{
+		"id": "2026-08-01-newfoundland",
+		"name": "Newfoundland",
+		"date": "2026-08-01",
+		"coverThumbnailPath": "/galleries/2026-08-01-newfoundland/thumbnails/20260802_004002.webp",
+		"mediaSource": "galleries/2026-08-01-newfoundland.json",
+		"hasPhotographers": false
+	},
+	{
+		"id": "2026-08-08-london",
+		"name": "London",
+		"date": "2026-08-08",
+		"coverThumbnailPath": "/galleries/2026-08-08-london/thumbnails/20260808_111632.webp",
+		"mediaSource": "galleries/2026-08-08-london.json",
+		"hasPhotographers": false
+	},
+	{
+		"id": "2026-08-12-scotland",
+		"name": "Scotland",
+		"date": "2026-08-12",
+		"coverThumbnailPath": "/galleries/2026-08-12-scotland/thumbnails/20260811_152256.webp",
+		"mediaSource": "galleries/2026-08-12-scotland.json",
+		"hasPhotographers": false
 	}
 ]
